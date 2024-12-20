@@ -121,7 +121,7 @@ mod test {
     }
 
     #[test]
-    fn inspect_h254_stream() -> Result<(), Error> {
+    fn inspect_h264_stream() -> Result<(), Error> {
         let h264_data = include_bytes!("../../../tests/videos/multi_512x512.h264");
 
         let mut inspector = H264StreamInspector::new();
