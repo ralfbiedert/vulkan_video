@@ -52,7 +52,7 @@ impl VideoSessionShared {
             let queue_fns = KhrVideoQueueDeviceFn::load(
                 |x| {
                     native_entry
-                        .get_instance_proc_addr(native_instance.handle(), x.as_ptr() as *const _)
+                        .get_instance_proc_addr(native_instance.handle(), x.as_ptr().cast())
                         .expect("Must have function pointer") as *const _
                 }, // TODO: Is this guaranteed to exist?
             );
@@ -60,7 +60,7 @@ impl VideoSessionShared {
             let decode_queue_fns = KhrVideoDecodeQueueDeviceFn::load(
                 |x| {
                     native_entry
-                        .get_instance_proc_addr(native_instance.handle(), x.as_ptr() as *const _)
+                        .get_instance_proc_addr(native_instance.handle(), x.as_ptr().cast())
                         .expect("Must have function pointer") as *const _
                 }, // TODO: Is this guaranteed to exist?
             );
