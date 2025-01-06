@@ -1,8 +1,8 @@
+use ash::vk::CStrTooLargeForStaticArray;
+use ash::LoadingError;
 use std::backtrace::Backtrace;
 use std::ffi::NulError;
 use std::fmt::{Display, Formatter};
-use ash::LoadingError;
-use ash::vk::CStrTooLargeForStaticArray;
 
 #[derive(Debug)]
 pub enum Variant {
@@ -25,6 +25,7 @@ pub struct Error {
 }
 
 impl Error {
+    #[track_caller]
     pub fn new(message: Option<String>, variant: Variant) -> Self {
         Self {
             message,
@@ -61,6 +62,7 @@ impl Display for Error {
 }
 
 impl From<ash::vk::Result> for Error {
+    #[track_caller]
     fn from(e: ash::vk::Result) -> Self {
         Self {
             message: None,
@@ -71,6 +73,7 @@ impl From<ash::vk::Result> for Error {
 }
 
 impl From<NulError> for Error {
+    #[track_caller]
     fn from(e: NulError) -> Self {
         Self {
             message: None,
@@ -81,6 +84,7 @@ impl From<NulError> for Error {
 }
 
 impl From<LoadingError> for Error {
+    #[track_caller]
     fn from(e: LoadingError) -> Self {
         Self {
             message: None,
@@ -91,6 +95,7 @@ impl From<LoadingError> for Error {
 }
 
 impl From<CStrTooLargeForStaticArray> for Error {
+    #[track_caller]
     fn from(e: CStrTooLargeForStaticArray) -> Self {
         Self {
             message: None,
@@ -99,7 +104,6 @@ impl From<CStrTooLargeForStaticArray> for Error {
         }
     }
 }
-
 
 #[macro_export]
 macro_rules! error {
