@@ -1,7 +1,8 @@
 use crate::device::{Device, DeviceShared};
-use crate::error::Error;
+use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
 use std::sync::Arc;
+use crate::error;
 
 #[allow(unused)]
 pub(crate) struct CommandBufferShared {
@@ -29,7 +30,7 @@ impl CommandBufferShared {
             let native_command_buffer = native_device
                 .allocate_command_buffers(&command_buffer_alloc_info)?
                 .pop()
-                .ok_or(Error::NoCommandBuffer)?;
+                .ok_or(error!(Variant::NoCommandBuffer))?;
 
             Ok(Self {
                 shared_device,

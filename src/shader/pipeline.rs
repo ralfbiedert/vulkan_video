@@ -1,5 +1,5 @@
 use crate::device::{Device, DeviceShared};
-use crate::error::Error;
+use crate::error::{Error, Variant};
 use crate::shader::parameters::ParametersShared;
 use crate::shader::shader::{Shader, ShaderShared};
 use crate::shader::ShaderParameterSet;
@@ -7,6 +7,7 @@ use ash::vk::{
     ComputePipelineCreateInfo, PipelineCache, PipelineLayout, PipelineLayoutCreateInfo, PipelineShaderStageCreateInfo, ShaderStageFlags,
 };
 use std::sync::Arc;
+use crate::error;
 
 #[allow(unused)]
 pub(crate) struct PipelineShared<T> {
@@ -48,10 +49,10 @@ impl<T: ShaderParameterSet> PipelineShared<T> {
             let pipeline_infos = [pipeline_info];
 
             let native_pipeline = match native_device.create_compute_pipelines(PipelineCache::null(), &pipeline_infos, None) {
-                Ok(mut pipelines) => pipelines.pop().ok_or(Error::NoComputePipeline)?,
+                Ok(mut pipelines) => pipelines.pop().ok_or(error!(Variant::NoComputePipeline))?,
                 Err((_, e)) => {
                     native_device.destroy_pipeline_layout(native_layout, None);
-                    return Err(Error::Vulkan(e));
+                    return Err(error!(Variant::Vulkan(e)));
                 }
             };
 

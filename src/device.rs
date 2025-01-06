@@ -1,8 +1,9 @@
-use crate::error::Error;
+use crate::error::{Error, Variant};
 use crate::instance::InstanceShared;
 use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
 use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
 use std::sync::Arc;
+use crate::error;
 
 /// Returns a queue family index (`.0`) that supports video, and a queue index (`.1`).
 ///
@@ -30,7 +31,7 @@ impl DeviceShared {
 
         // SAFETY: Should be safe as native instance is valid.
         let mut physical_devices = unsafe { native_instance.enumerate_physical_devices()? };
-        let native_physical_device = physical_devices.pop().ok_or_else(|| Error::NoVideoDevice)?;
+        let native_physical_device = physical_devices.pop().ok_or_else(|| error!(Variant::NoVideoDevice))?;
 
         // TODO: ... MAKE THIS PUBLIC AND
         // SAFETY: Should be safe as native instance and physical device are valid.

@@ -113,7 +113,8 @@ impl Allocation {
 mod test {
     use crate::allocation::Allocation;
     use crate::device::Device;
-    use crate::error::Error;
+    use crate::error;
+    use crate::error::{Error, Variant};
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
 
@@ -124,7 +125,7 @@ mod test {
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
         let device = Device::new(&physical_device)?;
-        let host_visible = physical_device.heap_infos().any_host_visible().ok_or(Error::HeapNotFound)?;
+        let host_visible = physical_device.heap_infos().any_host_visible().ok_or(error!(Variant::HeapNotFound))?;
 
         _ = Allocation::new(&device, 16 * 1024, host_visible)?;
 

@@ -62,7 +62,7 @@ pub mod video;
 pub use allocation::Allocation;
 pub use commandbuffer::CommandBuffer;
 pub use device::Device;
-pub use error::Error;
+pub use error::{Error, Variant};
 pub use instance::{Instance, InstanceInfo};
 pub use physicaldevice::{HeapInfos, PhysicalDevice, QueueFamilyInfos};
 pub use queue::Queue;

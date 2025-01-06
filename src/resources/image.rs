@@ -5,7 +5,8 @@ use crate::allocation::{Allocation, AllocationShared};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
 use crate::device::{Device, DeviceShared};
-use crate::error::Error;
+use crate::error;
+use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
 
 pub struct MemoryRequirements {
@@ -180,7 +181,7 @@ impl ImageShared {
         let native_allocation = shared_allocation.native();
 
         if self.shared_allocation.borrow().is_some() {
-            return Err(Error::ImageAlreadyBound);
+            return Err(error!(Variant::ImageAlreadyBound));
         }
 
         unsafe {

@@ -1,7 +1,8 @@
-use crate::error::Error;
+use crate::error::{Error, Variant};
 use crate::instance::{Instance, InstanceShared};
 use ash::vk::{MemoryPropertyFlags, PhysicalDeviceMemoryProperties, QueueFlags};
 use std::sync::Arc;
+use crate::error;
 
 /// Provides logical information about vulkan queue families.
 pub struct QueueFamilyInfos {
@@ -110,7 +111,7 @@ impl PhysicalDeviceShared {
         unsafe {
             // SAFETY: Should be safe as native instance is valid.
             let mut physical_devices = native_instance.enumerate_physical_devices()?;
-            let native_physical_device = physical_devices.pop().ok_or_else(|| Error::NoVideoDevice)?;
+            let native_physical_device = physical_devices.pop().ok_or_else(|| error!(Variant::NoVideoDevice))?;
             let queue_family_infos = QueueFamilyInfos::new(native_instance.clone(), native_physical_device);
             let heap_infos = HeapInfos::new(native_instance.clone(), native_physical_device);
 
