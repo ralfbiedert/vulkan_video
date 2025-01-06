@@ -1,4 +1,8 @@
 //!
+//! [![crates.io-badge]][crates.io-url]
+//! [![docs.rs-badge]][docs.rs-url]
+//! ![license-badge]
+//!
 //! # Vulkan Video
 //!
 //! Safe bindings to [Vulkan Video](https://www.khronos.org/blog/an-introduction-to-vulkan-video) via [ash](https://github.com/ash-rs/ash).
@@ -41,6 +45,10 @@
 //!
 //!     We probably won't add container support to the core library. Instead you'd use another crate to parse your MP4 (or similar), and then feed the H.26x frames into this library.
 //!
+//! - **Why don't you run unit tests on CI?**
+//!
+//!     Support for Vulkan (Vulkan video in particular) on CIs is super flaky. Suggestions how to improve this are welcome!
+//!
 //! - **What's your UB policy?**
 //!
 //!     All Rust code in here should be safe and must never cause undefined behavior (UB). If you find anything that could cause UB, please file an issue.
@@ -56,6 +64,12 @@
 //! ## License
 //!
 //! - BSD 2-Clause, Ralf Biedert
+//!
+//! [crates.io-badge]: https://img.shields.io/crates/v/vulkan_video.svg
+//! [crates.io-url]: https://crates.io/crates/vulkan_video
+//! [license-badge]: https://img.shields.io/badge/license-BSD2-blue.svg
+//! [docs.rs-badge]: https://docs.rs/vulkan_video/badge.svg
+//! [docs.rs-url]: https://docs.rs/vulkan_video/
 //!
 mod allocation;
 pub(crate) mod commandbuffer;
