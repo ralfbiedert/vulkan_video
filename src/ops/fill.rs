@@ -2,7 +2,8 @@ use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared};
-use ash::vk::WHOLE_SIZE;
+use ash::vk;
+use ash::vk::{DependencyFlags, PipelineStageFlags, WHOLE_SIZE};
 use std::sync::Arc;
 
 /// Fills a buffer with a fixed value.
@@ -26,7 +27,29 @@ impl AddToCommandBuffer for FillBuffer {
         let native_buffer = self.buffer.native();
         let native_command_buffer = builder.native_command_buffer();
 
+        // TODO: Do we want to keep these barriers as part of these operations (but then we'd sort
+        // of have to divine what the subsequent operations are). Or do we want barriers to be
+        // explicit operations (but then people might forget using them or won't use them correctly)?
+        let buffer_barrier = vk::BufferMemoryBarrier::default()
+            .src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
+            .dst_access_mask(vk::AccessFlags::TRANSFER_READ)
+            .buffer(native_buffer)
+            .size(self.buffer.size())
+            .offset(0);
+
+        let barriers = [buffer_barrier];
+
         unsafe {
+            native_device.cmd_pipeline_barrier(
+                native_command_buffer,
+                PipelineStageFlags::TRANSFER,
+                PipelineStageFlags::TRANSFER,
+                DependencyFlags::empty(),
+                &[],
+                &barriers,
+                &[], // No image-level memory barriers
+            );
+
             native_device.cmd_fill_buffer(native_command_buffer, native_buffer, 0, WHOLE_SIZE, self.value);
             Ok(())
         }
