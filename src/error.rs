@@ -6,8 +6,8 @@ pub enum Error {
     #[error("A NUL byte was encountered")]
     Nul(#[from] std::ffi::NulError),
 
-    #[error("A NUL byte was encountered")]
-    FromBytesWithNul(#[from] std::ffi::FromBytesWithNulError),
+    #[error("CStr too large for static array")]
+    CStrTooLargeForStaticArray(#[from] ash::vk::CStrTooLargeForStaticArray),
 
     #[error("Could not load Vulkan")]
     Loading(#[from] ash::LoadingError),

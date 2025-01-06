@@ -2,30 +2,19 @@ use crate::allocation::Allocation;
 use crate::device::{Device, DeviceShared};
 use crate::error::Error;
 use crate::video::h264::H264StreamInspector;
+use ash::khr::{video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn, video_queue::DeviceFn as KhrVideoQueueDeviceFn};
 use ash::vk;
 use ash::vk::{
-    BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, KhrVideoDecodeQueueFn, KhrVideoQueueFn,
-    VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR, VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
+    BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
+    VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
 };
-use std::ffi::c_char;
-use std::iter::zip;
 use std::ptr::null;
 use std::sync::Arc;
 
-fn extension_name(name: &[u8]) -> [c_char; 256] {
-    let mut extension_name = [0; 256];
-
-    for (y, x) in zip(&mut extension_name, name) {
-        *y = *x as c_char;
-    }
-
-    extension_name
-}
-
 pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
-    native_queue_fns: KhrVideoQueueFn,
-    native_decode_queue_fns: KhrVideoDecodeQueueFn,
+    native_queue_fns: KhrVideoQueueDeviceFn,
+    native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
     native_session: VideoSessionKHR,
     allocations: Vec<Allocation>,
 }
@@ -39,12 +28,12 @@ impl VideoSessionShared {
         let native_instance = shared_instance.native();
         let native_entry = shared_instance.native_entry();
 
-        let extension_name = extension_name(b"VK_STD_vulkan_video_codec_h264_decode");
+        let extension_name = c"VK_STD_vulkan_video_codec_h264_decode";
         let extension_version = vk::make_api_version(0, 1, 0, 0);
 
         let extensions_names = ExtensionProperties::default()
             .spec_version(extension_version)
-            .extension_name(extension_name);
+            .extension_name(extension_name)?;
 
         let profiles = stream_inspector.profiles();
 
@@ -60,7 +49,7 @@ impl VideoSessionShared {
             .std_header_version(&extensions_names);
 
         unsafe {
-            let queue_fns = KhrVideoQueueFn::load(
+            let queue_fns = KhrVideoQueueDeviceFn::load(
                 |x| {
                     native_entry
                         .get_instance_proc_addr(native_instance.handle(), x.as_ptr() as *const _)
@@ -68,7 +57,7 @@ impl VideoSessionShared {
                 }, // TODO: Is this guaranteed to exist?
             );
 
-            let decode_queue_fns = KhrVideoDecodeQueueFn::load(
+            let decode_queue_fns = KhrVideoDecodeQueueDeviceFn::load(
                 |x| {
                     native_entry
                         .get_instance_proc_addr(native_instance.handle(), x.as_ptr() as *const _)
@@ -131,11 +120,11 @@ impl VideoSessionShared {
         self.native_session
     }
 
-    pub(crate) fn queue_fns(&self) -> KhrVideoQueueFn {
+    pub(crate) fn queue_fns(&self) -> KhrVideoQueueDeviceFn {
         self.native_queue_fns.clone()
     }
 
-    pub(crate) fn decode_fns(&self) -> KhrVideoDecodeQueueFn {
+    pub(crate) fn decode_fns(&self) -> KhrVideoDecodeQueueDeviceFn {
         self.native_decode_queue_fns.clone()
     }
 
