@@ -1,6 +1,7 @@
 use crate::allocation::Allocation;
 use crate::device::{Device, DeviceShared};
-use crate::error::Error;
+use crate::error;
+use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
 use ash::khr::{video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn, video_queue::DeviceFn as KhrVideoQueueDeviceFn};
 use ash::vk;
@@ -37,8 +38,14 @@ impl VideoSessionShared {
 
         let profiles = stream_inspector.profiles();
 
+        let queue_family_index = shared_device
+            .physical_device()
+            .queue_family_infos()
+            .any_decode()
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
+
         let video_session_create_info = VideoSessionCreateInfoKHR::default()
-            .queue_family_index(3) // TODO: This may not be hardcoded (like so many other things...)
+            .queue_family_index(queue_family_index)
             .flags(VideoSessionCreateFlagsKHR::empty())
             .video_profile(&profiles.info)
             .picture_format(Format::G8_B8R8_2PLANE_420_UNORM)
