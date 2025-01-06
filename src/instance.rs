@@ -52,7 +52,7 @@ impl InstanceInfo {
     /// Enabling this can cause initialization failures if the validation layers are not present.
     /// You probably need the Vulkan SDK installed.
     pub fn validation(mut self, validation: bool) -> Self {
-        // self.validation = validation;
+        // self.validation = validation; // TODO: Re-enable this later
         self
     }
 }
@@ -72,9 +72,9 @@ pub(crate) struct InstanceShared {
 impl InstanceShared {
     pub fn new(info: &InstanceInfo) -> Result<Self, Error> {
         let vulkan_version = vk::make_api_version(0, 1, 3, 0);
-        let debug_layers = [b"VK_LAYER_KHRONOS_validation\0".as_ptr() as *const _];
+        let debug_layers = [c"VK_LAYER_KHRONOS_validation".as_ptr().cast()];
         let enabled_layers = if info.validation { debug_layers.as_slice() } else { &[] };
-        let instance_extensions = [b"VK_KHR_portability_enumeration\0".as_ptr() as *const _];
+        let instance_extensions = [c"VK_KHR_portability_enumeration".as_ptr().cast()];
 
         let app_info = ApplicationInfo::default()
             .application_name(&info.app_name)

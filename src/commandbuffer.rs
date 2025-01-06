@@ -1,8 +1,8 @@
 use crate::device::{Device, DeviceShared};
+use crate::error;
 use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
 use std::sync::Arc;
-use crate::error;
 
 #[allow(unused)]
 pub(crate) struct CommandBufferShared {
@@ -69,6 +69,7 @@ impl CommandBuffer {
         Ok(Self { shared: Arc::new(shared) })
     }
 
+    #[allow(unused)]
     pub(crate) fn native(&self) -> ash::vk::CommandBuffer {
         self.shared.native()
     }

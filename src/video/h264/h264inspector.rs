@@ -29,8 +29,8 @@ pub struct H264StreamInspector {
 }
 
 pub enum XXX {
-    SPS(SeqParameterSet),
-    PPS(PicParameterSet),
+    Sps(SeqParameterSet),
+    Pps(PicParameterSet),
 }
 
 impl H264StreamInspector {
@@ -42,7 +42,7 @@ impl H264StreamInspector {
     }
 
     pub fn feed_nal(&mut self, nal: &[u8]) -> Option<XXX> {
-        let mut rval = None;
+        let rval = None;
 
         // TODO: This is ugly as there does not seem to be a good way to signal errors within this accumulate function.
         let mut reader = AnnexBReader::accumulate(|nal: RefNal<'_>| {

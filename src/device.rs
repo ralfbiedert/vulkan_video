@@ -1,23 +1,9 @@
+use crate::error;
 use crate::error::{Error, Variant};
 use crate::instance::InstanceShared;
 use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
 use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
 use std::sync::Arc;
-use crate::error;
-
-/// Returns a queue family index (`.0`) that supports video, and a queue index (`.1`).
-///
-/// # Safety
-///
-/// Must be called with a valid instance and physical device.
-// unsafe fn video_decode_queue(instance: ash::Instance, physical_device: PhysicalDevice) -> Option<(u32, u32)> {
-//     instance
-//         .get_physical_device_queue_family_properties(physical_device)
-//         .iter()
-//         .enumerate()
-//         .find(|(_, property)| property.queue_flags.contains(QueueFlags::VIDEO_DECODE_KHR))
-//         .map(|(i, _)| (i as u32, 0)) // TODO: Where to get queue index from?
-// }
 
 #[allow(unused)]
 pub(crate) struct DeviceShared {
@@ -39,9 +25,9 @@ impl DeviceShared {
         //     unsafe { video_decode_queue(native_instance.clone(), native_physical_device).ok_or(Error::NoVideoDevice)? };
 
         let device_extensions = [
-            b"VK_KHR_video_queue\0".as_ptr() as *const _,
-            b"VK_KHR_video_decode_queue\0".as_ptr() as *const _,
-            b"VK_KHR_video_decode_h264\0".as_ptr() as *const _,
+            c"VK_KHR_video_queue".as_ptr().cast(),
+            c"VK_KHR_video_decode_queue".as_ptr().cast(),
+            c"VK_KHR_video_decode_h264".as_ptr().cast(),
         ];
 
         let mut create_infos = Vec::new();
@@ -78,6 +64,7 @@ impl DeviceShared {
         Self::new_with_families(shared_physical_device, &infos)
     }
 
+    #[allow(unused)]
     pub(crate) fn physical_device(&self) -> Arc<PhysicalDeviceShared> {
         self.shared_physical_device.clone()
     }

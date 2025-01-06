@@ -11,7 +11,7 @@ use std::ffi::c_void;
 use std::sync::Arc;
 
 /// Specifies how to crate a [`Buffer`](Buffer).
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct BufferInfo {
     size: u64,
     alignment: Option<u64>,
@@ -282,7 +282,10 @@ mod test {
         let instance_info = InstanceInfo::new().app_name("MyApp")?.app_version(100).validation(true);
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
-        let host_visible = physical_device.heap_infos().any_host_visible().ok_or(error!(Variant::HeapNotFound))?;
+        let host_visible = physical_device
+            .heap_infos()
+            .any_host_visible()
+            .ok_or(error!(Variant::HeapNotFound))?;
         let device = Device::new(&physical_device)?;
         let allocation = Allocation::new(&device, 16 * 1024, host_visible)?;
         let buffer_info = BufferInfo::new().size(1024).alignment(0).offset(0);
@@ -299,7 +302,10 @@ mod test {
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
         let device = Device::new(&physical_device)?;
-        let device_local = physical_device.heap_infos().any_device_local().ok_or(error!(Variant::HeapNotFound))?;
+        let device_local = physical_device
+            .heap_infos()
+            .any_device_local()
+            .ok_or(error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 16 * 1024, device_local)?;
         let buffer_info = BufferInfo::new().size(1024).alignment(0).offset(0);
         let h264inspector = H264StreamInspector::new();
@@ -316,7 +322,10 @@ mod test {
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
         let device = Device::new(&physical_device)?;
-        let host_visible = physical_device.heap_infos().any_host_visible().ok_or(error!(Variant::HeapNotFound))?;
+        let host_visible = physical_device
+            .heap_infos()
+            .any_host_visible()
+            .ok_or(error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 16 * 1024, host_visible)?;
         let buffer_info = BufferInfo::new().size(1024).alignment(0).offset(0);
 

@@ -1,4 +1,5 @@
 use crate::device::{Device, DeviceShared};
+use crate::error;
 use crate::error::{Error, Variant};
 use crate::shader::parameters::ParametersShared;
 use crate::shader::shader::{Shader, ShaderShared};
@@ -7,7 +8,6 @@ use ash::vk::{
     ComputePipelineCreateInfo, PipelineCache, PipelineLayout, PipelineLayoutCreateInfo, PipelineShaderStageCreateInfo, ShaderStageFlags,
 };
 use std::sync::Arc;
-use crate::error;
 
 #[allow(unused)]
 pub(crate) struct PipelineShared<T> {
@@ -109,10 +109,12 @@ impl<T: ShaderParameterSet> Pipeline<T> {
         Ok(Self { shared: Arc::new(shared) })
     }
 
+    #[allow(unused)]
     pub(crate) fn shared(&self) -> Arc<PipelineShared<T>> {
         self.shared.clone()
     }
 
+    #[allow(unused)]
     pub(crate) fn layout(&self) -> ash::vk::PipelineLayout {
         self.shared.layout()
     }

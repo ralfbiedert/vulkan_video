@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Arc;
 
 use ash::vk::{Format, ImageAspectFlags, ImageSubresourceRange, ImageViewCreateInfo, ImageViewType};
@@ -8,7 +9,7 @@ use crate::resources::image::ImageShared;
 use crate::resources::Image;
 
 /// Specifies how to crate an  [`ImageView`](ImageView).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ImageViewInfo {
     format: Format,
     image_view_type: ImageViewType,
@@ -19,13 +20,7 @@ pub struct ImageViewInfo {
 
 impl ImageViewInfo {
     pub fn new() -> ImageViewInfo {
-        Self {
-            format: Default::default(),
-            image_view_type: Default::default(),
-            aspect_mask: Default::default(),
-            layer_count: 0,
-            level_count: 0,
-        }
+        Self::default()
     }
 
     pub fn format(mut self, format: Format) -> Self {
@@ -55,13 +50,13 @@ impl ImageViewInfo {
 }
 
 pub(crate) struct ImageViewShared {
-    shared_image: Arc<ImageShared>,
+    shared_image: Rc<ImageShared>,
     shared_device: Arc<DeviceShared>,
     native_view: ash::vk::ImageView,
 }
 
 impl ImageViewShared {
-    pub fn new(shared_image: Arc<ImageShared>, info: &ImageViewInfo) -> Result<Self, Error> {
+    pub fn new(shared_image: Rc<ImageShared>, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_device = shared_image.device();
 
         let native_image = shared_image.native();
@@ -90,10 +85,10 @@ impl ImageViewShared {
     }
 
     pub(crate) fn native(&self) -> ash::vk::ImageView {
-        self.native_view.clone()
+        self.native_view
     }
 
-    pub(crate) fn image(&self) -> Arc<ImageShared> {
+    pub(crate) fn image(&self) -> Rc<ImageShared> {
         self.shared_image.clone()
     }
 }
@@ -110,7 +105,7 @@ impl Drop for ImageViewShared {
 
 /// View of an [`Image`](Image).
 pub struct ImageView {
-    shared_view: Arc<ImageViewShared>,
+    shared_view: Rc<ImageViewShared>,
 }
 
 impl ImageView {
@@ -118,11 +113,11 @@ impl ImageView {
         let shared_view = ImageViewShared::new(image.shared(), info)?;
 
         Ok(Self {
-            shared_view: Arc::new(shared_view),
+            shared_view: Rc::new(shared_view),
         })
     }
 
-    pub(crate) fn shared(&self) -> Arc<ImageViewShared> {
+    pub(crate) fn shared(&self) -> Rc<ImageViewShared> {
         self.shared_view.clone()
     }
 
@@ -165,7 +160,7 @@ mod test {
 
         let image = Image::new(&device, &image_info)?;
         let heap_type = image.memory_requirement().any_heap();
-        let allocation = Allocation::new(&device, 1024 * 1024, heap_type)?;
+        let _allocation = Allocation::new(&device, 1024 * 1024, heap_type)?;
 
         let image_view_info = ImageViewInfo::new()
             .aspect_mask(ImageAspectFlags::COLOR)

@@ -77,31 +77,29 @@ impl VideoSessionShared {
 
             create_video_session(native_device.handle(), &video_session_create_info, null(), &mut native_session).result()?;
 
-            unsafe {
-                memory_requirements(
-                    native_device.handle(),
-                    native_session,
-                    &mut video_session_count,
-                    video_session_requirements.as_mut_ptr(),
-                )
-                .result()?;
+            memory_requirements(
+                native_device.handle(),
+                native_session,
+                &mut video_session_count,
+                video_session_requirements.as_mut_ptr(),
+            )
+            .result()?;
 
-                let video_session_requirements = &video_session_requirements[0..video_session_count as usize];
+            let video_session_requirements = &video_session_requirements[0..video_session_count as usize];
 
-                for (i, r) in video_session_requirements.iter().enumerate() {
-                    let supported_types = r.memory_requirements.memory_type_bits;
-                    let best_type = supported_types.trailing_zeros(); // TODO: Better logic to select memory type?
+            for (i, r) in video_session_requirements.iter().enumerate() {
+                let supported_types = r.memory_requirements.memory_type_bits;
+                let best_type = supported_types.trailing_zeros(); // TODO: Better logic to select memory type?
 
-                    let allocation = Allocation::new(device, r.memory_requirements.size, best_type)?;
-                    let bind = BindVideoSessionMemoryInfoKHR::default()
-                        .memory(allocation.native())
-                        .memory_bind_index(i as u32)
-                        .memory_size(r.memory_requirements.size)
-                        .memory_offset(0);
+                let allocation = Allocation::new(device, r.memory_requirements.size, best_type)?;
+                let bind = BindVideoSessionMemoryInfoKHR::default()
+                    .memory(allocation.native())
+                    .memory_bind_index(i as u32)
+                    .memory_size(r.memory_requirements.size)
+                    .memory_offset(0);
 
-                    allocations.push(allocation);
-                    bindings.push(bind);
-                }
+                allocations.push(allocation);
+                bindings.push(bind);
             }
 
             bind_video_session_memory(native_device.handle(), native_session, bindings.len() as u32, bindings.as_ptr()).result()?;

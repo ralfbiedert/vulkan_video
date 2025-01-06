@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::allocation::{Allocation, AllocationShared};
@@ -30,7 +31,7 @@ impl MemoryRequirements {
 }
 
 /// Specifies how to crate an [`Image`](Image).
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct ImageInfo {
     format: Format,
     samples: SampleCountFlags,
@@ -46,18 +47,7 @@ pub struct ImageInfo {
 
 impl ImageInfo {
     pub fn new() -> ImageInfo {
-        Self {
-            format: Default::default(),
-            samples: Default::default(),
-            usage: Default::default(),
-            mip_levels: 0,
-            array_layers: 0,
-            bind_offset: 0,
-            image_type: Default::default(),
-            tiling: Default::default(),
-            extent: Default::default(),
-            layout: Default::default(),
-        }
+        Self::default()
     }
 
     pub fn format(mut self, format: Format) -> Self {
@@ -208,7 +198,7 @@ impl ImageShared {
     }
 
     pub(crate) fn native(&self) -> ash::vk::Image {
-        self.native_image.clone()
+        self.native_image
     }
 
     pub(crate) fn device(&self) -> Arc<DeviceShared> {
@@ -232,7 +222,7 @@ impl Drop for ImageShared {
 
 /// A often 2D image, usually stored on the GPU.
 pub struct Image {
-    shared: Arc<ImageShared>,
+    shared: Rc<ImageShared>,
 }
 
 impl Image {
@@ -240,7 +230,7 @@ impl Image {
         let shared_device = ImageShared::new(device.shared(), info)?;
 
         Ok(Self {
-            shared: Arc::new(shared_device),
+            shared: Rc::new(shared_device),
         })
     }
 
@@ -248,7 +238,7 @@ impl Image {
         let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
 
         Ok(Self {
-            shared: Arc::new(shared_device),
+            shared: Rc::new(shared_device),
         })
     }
 
@@ -261,12 +251,16 @@ impl Image {
         self.shared.memory_requirement()
     }
 
-    pub(crate) fn shared(&self) -> Arc<ImageShared> {
+    pub(crate) fn shared(&self) -> Rc<ImageShared> {
         self.shared.clone()
     }
+
+    #[allow(unused)]
     pub(crate) fn native(&self) -> ash::vk::Image {
         self.shared.native()
     }
+
+    #[allow(unused)]
     pub(crate) fn device(&self) -> Arc<DeviceShared> {
         self.shared.shared_device.clone()
     }

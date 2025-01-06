@@ -3,11 +3,12 @@ use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared, Image, ImageShared};
 use ash::vk::{BufferImageCopy, ImageAspectFlags, ImageLayout, ImageSubresourceLayers};
+use std::rc::Rc;
 use std::sync::Arc;
 
 /// Performs an image-to-buffer copy operation.
 pub struct CopyImage2Buffer {
-    image: Arc<ImageShared>,
+    image: Rc<ImageShared>,
     buffer: Arc<BufferShared>,
     aspect_mask: ImageAspectFlags,
 }
@@ -49,6 +50,7 @@ mod test {
     use crate::allocation::Allocation;
     use crate::commandbuffer::CommandBuffer;
     use crate::device::Device;
+    use crate::error;
     use crate::error::{Error, Variant};
     use crate::instance::{Instance, InstanceInfo};
     use crate::ops::{AddToCommandBuffer, CopyImage2Buffer};
@@ -56,7 +58,6 @@ mod test {
     use crate::queue::Queue;
     use crate::resources::{Buffer, BufferInfo, Image, ImageInfo};
     use ash::vk::{Extent3D, Format, ImageAspectFlags, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
-    use crate::error;
 
     #[test]
     #[cfg(not(miri))]
@@ -64,7 +65,10 @@ mod test {
         let instance_info = InstanceInfo::new().app_name("MyApp")?.app_version(100).validation(true);
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
-        let compute_queue = physical_device.queue_family_infos().any_compute().ok_or(error!(Variant::QueueNotFound))?;
+        let compute_queue = physical_device
+            .queue_family_infos()
+            .any_compute()
+            .ok_or(error!(Variant::QueueNotFound))?;
         let device = Device::new(&physical_device)?;
         let queue = Queue::new(&device, compute_queue, 0)?;
         let command_buffer = CommandBuffer::new(&device, compute_queue)?;

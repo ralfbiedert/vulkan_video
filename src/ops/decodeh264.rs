@@ -13,6 +13,7 @@ use ash::vk::{
     VideoDecodeH264PictureInfoKHR, VideoDecodeInfoKHR, VideoEndCodingInfoKHR, VideoPictureResourceInfoKHR, VideoReferenceSlotInfoKHR,
     QUEUE_FAMILY_IGNORED,
 };
+use std::rc::Rc;
 use std::sync::Arc;
 
 /// Specifies which part of a buffer to decode.
@@ -32,7 +33,7 @@ impl DecodeInfo {
 pub struct DecodeH264 {
     shared_parameters: Arc<VideoSessionParametersShared>,
     shared_buffer: Arc<BufferShared>,
-    shared_image_view: Arc<ImageViewShared>,
+    shared_image_view: Rc<ImageViewShared>,
     decode_info: DecodeInfo,
 }
 
@@ -214,6 +215,7 @@ mod test {
     use crate::allocation::Allocation;
     use crate::commandbuffer::CommandBuffer;
     use crate::device::Device;
+    use crate::error;
     use crate::error::{Error, Variant};
     use crate::instance::{Instance, InstanceInfo};
     use crate::ops::decodeh264::DecodeInfo;
@@ -226,7 +228,6 @@ mod test {
     use ash::vk::{
         Extent3D, Format, ImageAspectFlags, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, ImageViewType, SampleCountFlags,
     };
-    use crate::error;
 
     #[test]
     #[cfg(not(miri))]
@@ -266,13 +267,22 @@ mod test {
             .layer_count(1)
             .level_count(1);
         let image_view_dst = ImageView::new(&image_dst, &image_view_dst_info)?;
-        let queue_video_decode = physical_device.queue_family_infos().any_decode().ok_or(error!(Variant::QueueNotFound))?;
+        let queue_video_decode = physical_device
+            .queue_family_infos()
+            .any_decode()
+            .ok_or(error!(Variant::QueueNotFound))?;
         let queue = Queue::new(&device, queue_video_decode, 0)?;
         let command_buffer = CommandBuffer::new(&device, queue_video_decode)?;
 
         // TODO: WHY THIS +256 needed for video buffers?
-        let memory_host = physical_device.heap_infos().any_host_visible().ok_or(error!(Variant::HeapNotFound))?;
-        let memory_device = physical_device.heap_infos().any_device_local().ok_or(error!(Variant::HeapNotFound))?;
+        let memory_host = physical_device
+            .heap_infos()
+            .any_host_visible()
+            .ok_or(error!(Variant::HeapNotFound))?;
+        let memory_device = physical_device
+            .heap_infos()
+            .any_device_local()
+            .ok_or(error!(Variant::HeapNotFound))?;
 
         let allocation_h264 = Allocation::new(&device, 1024 * 1024 * 4 + 256, memory_host)?;
         let buffer_info_h264 = BufferInfo::new().size(1024 * 1024 * 4);
