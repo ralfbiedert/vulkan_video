@@ -61,14 +61,14 @@ mod test {
         let compute_queue = physical_device
             .queue_family_infos()
             .any_compute()
-            .ok_or(error!(Variant::QueueNotFound))?;
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let device = Device::new(&physical_device)?;
         let queue = Queue::new(&device, compute_queue, 0)?;
         let command_buffer = CommandBuffer::new(&device, compute_queue)?;
         let host_visible = physical_device
             .heap_infos()
             .any_host_visible()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 2 * 1024, host_visible)?;
 
         let buffer_info_src = BufferInfo::new().size(1024);

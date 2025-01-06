@@ -22,7 +22,7 @@ impl DeviceShared {
         // TODO: ... MAKE THIS PUBLIC AND
         // SAFETY: Should be safe as native instance and physical device are valid.
         // let (queue_family_index, queue_index) =
-        //     unsafe { video_decode_queue(native_instance.clone(), native_physical_device).ok_or(Error::NoVideoDevice)? };
+        //     unsafe { video_decode_queue(native_instance.clone(), native_physical_device).ok_or_else(|| error::NoVideoDevice)? };
 
         let device_extensions = [
             c"VK_KHR_video_queue".as_ptr().cast(),

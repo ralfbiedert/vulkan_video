@@ -270,7 +270,7 @@ mod test {
         let queue_video_decode = physical_device
             .queue_family_infos()
             .any_decode()
-            .ok_or(error!(Variant::QueueNotFound))?;
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let queue = Queue::new(&device, queue_video_decode, 0)?;
         let command_buffer = CommandBuffer::new(&device, queue_video_decode)?;
 
@@ -278,11 +278,11 @@ mod test {
         let memory_host = physical_device
             .heap_infos()
             .any_host_visible()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let memory_device = physical_device
             .heap_infos()
             .any_device_local()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
 
         let allocation_h264 = Allocation::new(&device, 1024 * 1024 * 4 + 256, memory_host)?;
         let buffer_info_h264 = BufferInfo::new().size(1024 * 1024 * 4);

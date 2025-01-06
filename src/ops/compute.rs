@@ -228,7 +228,7 @@ mod test {
         let host_visible = physical_device
             .heap_infos()
             .any_host_visible()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 4 * BLOCK_SIZE, host_visible)?;
         let buffer0 = Buffer::new(&allocation, &BufferInfo::new().size(BLOCK_SIZE).offset(0 * BLOCK_SIZE))?;
         let buffer1 = Buffer::new(&allocation, &BufferInfo::new().size(BLOCK_SIZE).offset(1 * BLOCK_SIZE))?;
@@ -236,7 +236,7 @@ mod test {
         let compute_queue = physical_device
             .queue_family_infos()
             .any_compute()
-            .ok_or(error!(Variant::QueueNotFound))?;
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let queue = Queue::new(&device, compute_queue, 0)?;
         let parameters = Parameters::new(&device)?;
         let shader = Shader::new(&device, shader_code, "main", &parameters)?;
@@ -286,7 +286,7 @@ mod test {
         let heap_host_visible = physical_device
             .heap_infos()
             .any_host_visible()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
 
         let allocation_gpu = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
         let allocation_host_visible = Allocation::new(&device, 512 * 512 * 4, heap_host_visible)?;
@@ -303,7 +303,7 @@ mod test {
         let compute_queue = physical_device
             .queue_family_infos()
             .any_compute()
-            .ok_or(error!(Variant::QueueNotFound))?;
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let queue = Queue::new(&device, compute_queue, 0)?;
         let parameters = Parameters::new(&device)?;
         let shader = Shader::new(&device, shader_code, "main", &parameters)?;

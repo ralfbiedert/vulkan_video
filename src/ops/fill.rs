@@ -52,11 +52,17 @@ mod test {
         let instance_info = InstanceInfo::new().app_name("MyApp")?.app_version(100).validation(true);
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
-        let compute_queue = physical_device.queue_family_infos().any_compute().ok_or(error!(Variant::QueueNotFound))?;
+        let compute_queue = physical_device
+            .queue_family_infos()
+            .any_compute()
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let device = Device::new(&physical_device)?;
         let queue = Queue::new(&device, compute_queue, 0)?;
         let command_buffer = CommandBuffer::new(&device, compute_queue)?;
-        let host_visible = physical_device.heap_infos().any_host_visible().ok_or(error!(Variant::HeapNotFound))?;
+        let host_visible = physical_device
+            .heap_infos()
+            .any_host_visible()
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 1024, host_visible)?;
 
         let buffer_info = BufferInfo::new().size(1024);

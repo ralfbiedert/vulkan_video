@@ -125,7 +125,10 @@ mod test {
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
         let device = Device::new(&physical_device)?;
-        let host_visible = physical_device.heap_infos().any_host_visible().ok_or(error!(Variant::HeapNotFound))?;
+        let host_visible = physical_device
+            .heap_infos()
+            .any_host_visible()
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
 
         _ = Allocation::new(&device, 16 * 1024, host_visible)?;
 

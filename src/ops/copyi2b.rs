@@ -68,7 +68,7 @@ mod test {
         let compute_queue = physical_device
             .queue_family_infos()
             .any_compute()
-            .ok_or(error!(Variant::QueueNotFound))?;
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let device = Device::new(&physical_device)?;
         let queue = Queue::new(&device, compute_queue, 0)?;
         let command_buffer = CommandBuffer::new(&device, compute_queue)?;

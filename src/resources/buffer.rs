@@ -285,7 +285,7 @@ mod test {
         let host_visible = physical_device
             .heap_infos()
             .any_host_visible()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let device = Device::new(&physical_device)?;
         let allocation = Allocation::new(&device, 16 * 1024, host_visible)?;
         let buffer_info = BufferInfo::new().size(1024).alignment(0).offset(0);
@@ -305,7 +305,7 @@ mod test {
         let device_local = physical_device
             .heap_infos()
             .any_device_local()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 16 * 1024, device_local)?;
         let buffer_info = BufferInfo::new().size(1024).alignment(0).offset(0);
         let h264inspector = H264StreamInspector::new();
@@ -325,7 +325,7 @@ mod test {
         let host_visible = physical_device
             .heap_infos()
             .any_host_visible()
-            .ok_or(error!(Variant::HeapNotFound))?;
+            .ok_or_else(|| error!(Variant::HeapNotFound))?;
         let allocation = Allocation::new(&device, 16 * 1024, host_visible)?;
         let buffer_info = BufferInfo::new().size(1024).alignment(0).offset(0);
 

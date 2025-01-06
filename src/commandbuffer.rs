@@ -30,7 +30,7 @@ impl CommandBufferShared {
             let native_command_buffer = native_device
                 .allocate_command_buffers(&command_buffer_alloc_info)?
                 .pop()
-                .ok_or(error!(Variant::NoCommandBuffer))?;
+                .ok_or_else(|| error!(Variant::NoCommandBuffer))?;
 
             Ok(Self {
                 shared_device,
