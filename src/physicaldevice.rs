@@ -1,8 +1,8 @@
+use crate::error;
 use crate::error::{Error, Variant};
 use crate::instance::{Instance, InstanceShared};
 use ash::vk::{MemoryPropertyFlags, PhysicalDeviceMemoryProperties, QueueFlags};
 use std::sync::Arc;
-use crate::error;
 
 /// Provides logical information about vulkan queue families.
 pub struct QueueFamilyInfos {
