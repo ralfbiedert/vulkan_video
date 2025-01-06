@@ -9,13 +9,24 @@ Safe bindings to [Vulkan Video](https://www.khronos.org/blog/an-introduction-to-
 - Exposes compute functionality for post-processing
 - Import / export foreign memory for interop<sup>†</sup>
 
+<sup>†</sup> Right now the code is a hot mess, this needs much more work to be useful.
 
 ### Status
 
-- **October 1st, 2023** - <sup>†</sup> Right now this is a 'proof of concept', as it can only decode one H.264 frame on the author's graphics card, and is many weeks away from being useful.
+- **January 6th, 2025** - Re-activated for current `ash`; still won't work on your machine.
+- **October 1st, 2023** - First 'proof of concept', as it can only decode one H.264 frame on the author's graphics card, and is many weeks away from being useful.
 
 
 ### FAQ
+
+- **I'm getting weird errors**
+
+    We **STRONGLY** recommend you install the [Vulkan SDK](https://vulkan.lunarg.com/) and
+    make sure the validation layer is available. In fact, some of the test cases
+    require it and will error otherwise.
+
+    Apart from that, this needs much more work to initialize on various GPUs, help and PRs
+    would be greatly appreciated.
 
 - **Feature X is missing or broken, will you fix it?**
 

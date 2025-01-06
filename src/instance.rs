@@ -52,7 +52,7 @@ impl InstanceInfo {
     /// Enabling this can cause initialization failures if the validation layers are not present.
     /// You probably need the Vulkan SDK installed.
     pub fn validation(mut self, validation: bool) -> Self {
-        // self.validation = validation; // TODO: Re-enable this later
+        self.validation = validation;
         self
     }
 }
