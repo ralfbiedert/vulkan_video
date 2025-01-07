@@ -166,7 +166,7 @@ impl AddToCommandBuffer for DecodeH264 {
                 .subresource_range(ssr);
 
             let buffer_barrier = BufferMemoryBarrier2::default()
-                .src_stage_mask(PipelineStageFlags2::NONE)
+                .src_stage_mask(PipelineStageFlags2::HOST)
                 .src_access_mask(AccessFlags2::HOST_WRITE)
                 .src_queue_family_index(QUEUE_FAMILY_IGNORED)
                 .dst_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
