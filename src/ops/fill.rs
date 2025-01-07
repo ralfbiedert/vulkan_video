@@ -30,13 +30,6 @@ impl AddToCommandBuffer for FillBuffer {
         // TODO: Do we want to keep these barriers as part of these operations (but then we'd sort
         // of have to divine what the subsequent operations are). Or do we want barriers to be
         // explicit operations (but then people might forget using them or won't use them correctly)?
-        let buffer_barrier_before = vk::BufferMemoryBarrier::default()
-            .src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
-            .dst_access_mask(vk::AccessFlags::TRANSFER_WRITE)
-            .buffer(native_buffer)
-            .size(self.buffer.size())
-            .offset(0);
-
         let buffer_barrier_after = vk::BufferMemoryBarrier::default()
             .src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
             .dst_access_mask(vk::AccessFlags::TRANSFER_READ)
@@ -45,16 +38,6 @@ impl AddToCommandBuffer for FillBuffer {
             .offset(0);
 
         unsafe {
-            native_device.cmd_pipeline_barrier(
-                native_command_buffer,
-                PipelineStageFlags::TRANSFER,
-                PipelineStageFlags::TRANSFER,
-                DependencyFlags::empty(),
-                &[],
-                &[buffer_barrier_before],
-                &[], // No image-level memory barriers
-            );
-
             native_device.cmd_fill_buffer(native_command_buffer, native_buffer, 0, WHOLE_SIZE, self.value);
 
             native_device.cmd_pipeline_barrier(
