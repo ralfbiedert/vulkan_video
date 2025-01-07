@@ -77,7 +77,7 @@ impl VideoSessionShared {
             let memory_requirements = queue_fns.get_video_session_memory_requirements_khr;
 
             let mut native_session = VideoSessionKHR::default();
-            let mut video_session_requirements = [VideoSessionMemoryRequirementsKHR::default(); 1];
+            let mut video_session_requirements = [VideoSessionMemoryRequirementsKHR::default(); 4];
             let mut video_session_count = video_session_requirements.len() as u32;
             let mut allocations = Vec::new();
             let mut bindings = Vec::new();
