@@ -10,8 +10,8 @@ use ash::vk::native::{
 use ash::vk::{
     AccessFlags2, BufferMemoryBarrier2, DependencyInfoKHR, Extent2D, ImageAspectFlags, ImageLayout, ImageMemoryBarrier2,
     ImageSubresourceRange, PipelineStageFlags2, VideoBeginCodingInfoKHR, VideoCodingControlFlagsKHR, VideoCodingControlInfoKHR,
-    VideoDecodeH264PictureInfoKHR, VideoDecodeInfoKHR, VideoEndCodingInfoKHR, VideoPictureResourceInfoKHR, VideoReferenceSlotInfoKHR,
-    QUEUE_FAMILY_IGNORED,
+    VideoDecodeH264DpbSlotInfoKHR, VideoDecodeH264PictureInfoKHR, VideoDecodeInfoKHR, VideoEndCodingInfoKHR, VideoPictureResourceInfoKHR,
+    VideoReferenceSlotInfoKHR, QUEUE_FAMILY_IGNORED,
 };
 use std::rc::Rc;
 use std::sync::Arc;
@@ -93,7 +93,10 @@ impl AddToCommandBuffer for DecodeH264 {
             PicOrderCnt: [0, 0],
         };
 
+        let mut video_decode_h264_dpb_slot_info = VideoDecodeH264DpbSlotInfoKHR::default().std_reference_info(&s);
+
         let video_reference_slot = VideoReferenceSlotInfoKHR::default()
+            .push_next(&mut video_decode_h264_dpb_slot_info)
             .slot_index(0)
             .picture_resource(&picture_resource_dst);
 
