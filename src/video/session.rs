@@ -9,7 +9,7 @@ use ash::vk::{
     BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
     VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
 };
-use std::ptr::null;
+use std::ptr::{null, null_mut};
 use std::sync::Arc;
 
 pub(crate) struct VideoSessionShared {
@@ -77,12 +77,15 @@ impl VideoSessionShared {
             let memory_requirements = queue_fns.get_video_session_memory_requirements_khr;
 
             let mut native_session = VideoSessionKHR::default();
-            let mut video_session_requirements = [VideoSessionMemoryRequirementsKHR::default(); 4];
-            let mut video_session_count = video_session_requirements.len() as u32;
+            let mut video_session_count = 0;
             let mut allocations = Vec::new();
             let mut bindings = Vec::new();
 
             create_video_session(native_device.handle(), &video_session_create_info, null(), &mut native_session).result()?;
+
+            memory_requirements(native_device.handle(), native_session, &mut video_session_count, null_mut()).result()?;
+
+            let mut video_session_requirements = vec![VideoSessionMemoryRequirementsKHR::default(); video_session_count as usize];
 
             memory_requirements(
                 native_device.handle(),
