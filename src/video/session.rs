@@ -3,10 +3,13 @@ use crate::device::{Device, DeviceShared};
 use crate::error;
 use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
+use ash::khr::video_queue::{Instance, InstanceFn};
 use ash::khr::{video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn, video_queue::DeviceFn as KhrVideoQueueDeviceFn};
 use ash::vk;
 use ash::vk::{
-    BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
+    BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
+    VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
+    VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
     VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
 };
 use std::ptr::{null, null_mut};
@@ -16,6 +19,7 @@ pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
+    native_video_instance_fns: InstanceFn,
     native_session: VideoSessionKHR,
     allocations: Vec<Allocation>,
 }
@@ -55,7 +59,7 @@ impl VideoSessionShared {
             .max_active_reference_pictures(16)
             .std_header_version(&extensions_names);
 
-        unsafe {
+        let result = unsafe {
             let queue_fns = KhrVideoQueueDeviceFn::load(
                 |x| {
                     native_entry
@@ -72,9 +76,56 @@ impl VideoSessionShared {
                 }, // TODO: Is this guaranteed to exist?
             );
 
+            let video_instance_fn = InstanceFn::load(|x| {
+                native_entry
+                    .get_instance_proc_addr(native_instance.handle(), x.as_ptr().cast())
+                    .expect("Must have function pointer") as *const _
+            });
+
+            let get_physical_device_video_format_properties_khr = video_instance_fn.get_physical_device_video_format_properties_khr;
+            let get_physical_device_video_capabilities = video_instance_fn.get_physical_device_video_capabilities_khr;
             let create_video_session = queue_fns.create_video_session_khr;
             let bind_video_session_memory = queue_fns.bind_video_session_memory_khr;
             let memory_requirements = queue_fns.get_video_session_memory_requirements_khr;
+
+            let video_profile = VideoProfileInfoKHR::default()
+                .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
+                .chroma_subsampling(VideoChromaSubsamplingFlagsKHR::TYPE_420)
+                .chroma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
+                .luma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8);
+
+            let mut video_capabilities = VideoCapabilitiesKHR::default();
+
+            (get_physical_device_video_capabilities)(shared_device.physical_device().native(), &video_profile, &mut video_capabilities)
+                .result()?;
+
+            let array = &[video_profile];
+
+            let mut video_profile_list_info = VideoProfileListInfoKHR::default().profiles(array);
+
+            let video_format_info = PhysicalDeviceVideoFormatInfoKHR::default()
+                .image_usage(ImageUsageFlags::VIDEO_DECODE_DPB_KHR)
+                .push_next(&mut video_profile_list_info);
+
+            let mut num_video_format_properties = 0;
+
+            (get_physical_device_video_format_properties_khr)(
+                shared_device.physical_device().native(),
+                &video_format_info,
+                &mut num_video_format_properties,
+                null_mut(),
+            )
+            .result()?;
+
+            let mut video_format_properties = vec![VideoFormatPropertiesKHR::default(); num_video_format_properties as usize];
+
+            (get_physical_device_video_format_properties_khr)(
+                shared_device.physical_device().native(),
+                &video_format_info,
+                &mut num_video_format_properties,
+                video_format_properties.as_mut_ptr(),
+            )
+            .result()?;
 
             let mut native_session = VideoSessionKHR::default();
             let mut video_session_count = 0;
@@ -118,10 +169,12 @@ impl VideoSessionShared {
                 shared_device,
                 native_queue_fns: queue_fns,
                 native_decode_queue_fns: decode_queue_fns,
+                native_video_instance_fns: video_instance_fn,
                 native_session,
                 allocations,
             })
-        }
+        };
+        result
     }
 
     pub(crate) fn native(&self) -> VideoSessionKHR {
@@ -134,6 +187,10 @@ impl VideoSessionShared {
 
     pub(crate) fn decode_fns(&self) -> KhrVideoDecodeQueueDeviceFn {
         self.native_decode_queue_fns.clone()
+    }
+
+    pub(crate) fn video_instance_fns(&self) -> InstanceFn {
+        self.native_video_instance_fns.clone()
     }
 
     pub(crate) fn device(&self) -> Arc<DeviceShared> {
