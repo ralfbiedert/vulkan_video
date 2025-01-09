@@ -14,6 +14,22 @@ use ash::vk::{
 use std::ptr::{null, null_mut};
 use std::sync::Arc;
 
+pub(crate) struct VideoCapabilities {
+    min_bitstream_buffer_size_alignment: u64,
+}
+impl From<VideoCapabilitiesKHR<'_>> for VideoCapabilities {
+    fn from(value: VideoCapabilitiesKHR) -> Self {
+        Self {
+            min_bitstream_buffer_size_alignment: value.min_bitstream_buffer_size_alignment,
+        }
+    }
+}
+impl VideoCapabilities {
+    pub(crate) fn min_bitstream_buffer_size_alignment(&self) -> u64 {
+        self.min_bitstream_buffer_size_alignment
+    }
+}
+
 pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
     native_queue_fns: KhrVideoQueueDeviceFn,
@@ -21,6 +37,7 @@ pub(crate) struct VideoSessionShared {
     native_video_instance_fns: InstanceFn,
     native_session: VideoSessionKHR,
     allocations: Vec<Allocation>,
+    capabilities: VideoCapabilities,
 }
 
 impl VideoSessionShared {
@@ -171,6 +188,7 @@ impl VideoSessionShared {
                 native_video_instance_fns: video_instance_fn,
                 native_session,
                 allocations,
+                capabilities: video_capabilities.into(),
             })
         };
         result
@@ -194,6 +212,10 @@ impl VideoSessionShared {
 
     pub(crate) fn device(&self) -> Arc<DeviceShared> {
         self.shared_device.clone()
+    }
+
+    pub(crate) fn capabilities(&self) -> &VideoCapabilities {
+        &self.capabilities
     }
 }
 
