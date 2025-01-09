@@ -7,12 +7,13 @@ use ash::khr::{
     video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn,
     video_queue::{DeviceFn as KhrVideoQueueDeviceFn, InstanceFn as KhrVideoQueueInstanceFn},
 };
+use ash::vk::native::{StdVideoH264ProfileIdc, StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE};
 use ash::vk::{
     self, BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
     VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
-    VideoDecodeCapabilitiesKHR, VideoDecodeH264CapabilitiesKHR, VideoDecodeH264ProfileInfoKHR, VideoFormatPropertiesKHR,
-    VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR, VideoSessionKHR,
-    VideoSessionMemoryRequirementsKHR,
+    VideoDecodeCapabilitiesKHR, VideoDecodeH264CapabilitiesKHR, VideoDecodeH264PictureLayoutFlagsKHR, VideoDecodeH264ProfileInfoKHR,
+    VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
+    VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
 };
 use std::ptr::{null, null_mut};
 use std::sync::Arc;
@@ -90,7 +91,9 @@ impl VideoSessionShared {
             let bind_video_session_memory = queue_fns.bind_video_session_memory_khr;
             let memory_requirements = queue_fns.get_video_session_memory_requirements_khr;
 
-            let mut video_decode_h264_profile = VideoDecodeH264ProfileInfoKHR::default();
+            let mut video_decode_h264_profile =
+                VideoDecodeH264ProfileInfoKHR::default().std_profile_idc(StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE);
+
             let video_profile = VideoProfileInfoKHR::default()
                 .push_next(&mut video_decode_h264_profile)
                 .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
