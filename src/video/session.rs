@@ -1,4 +1,4 @@
-use crate::allocation::Allocation;
+use crate::allocation::{Allocation, MemoryTypeIndex};
 use crate::device::{Device, DeviceShared};
 use crate::error;
 use crate::error::{Error, Variant};
@@ -149,7 +149,7 @@ impl VideoSessionShared {
 
             for (i, r) in video_session_requirements.iter().enumerate() {
                 let supported_types = r.memory_requirements.memory_type_bits;
-                let best_type = supported_types.trailing_zeros(); // TODO: Better logic to select memory type?
+                let best_type = MemoryTypeIndex::new(supported_types.trailing_zeros()); // TODO: Better logic to select memory type?
 
                 let allocation = Allocation::new(device, r.memory_requirements.size, best_type)?;
                 let bind = BindVideoSessionMemoryInfoKHR::default()

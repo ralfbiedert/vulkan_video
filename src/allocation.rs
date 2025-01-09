@@ -5,19 +5,26 @@ use ash::vk::{DeviceMemory, ExternalMemoryHandleTypeFlags, ImportMemoryFdInfoKHR
 use std::ffi::c_void;
 use std::sync::Arc;
 
-#[allow(unused)]
+#[derive(Clone, Copy, Debug)]
+pub struct MemoryTypeIndex(u32);
+impl MemoryTypeIndex {
+    pub fn new(type_index: u32) -> Self {
+        Self(type_index)
+    }
+}
+
 pub(crate) struct AllocationShared {
     shared_instance: Arc<InstanceShared>,
     shared_device: Arc<DeviceShared>,
     device_memory: DeviceMemory,
     size: u64,
-    type_index: u32,
+    type_index: MemoryTypeIndex,
 }
 
 impl AllocationShared {
-    pub fn new(shared_device: Arc<DeviceShared>, size: u64, type_index: u32) -> Result<Self, Error> {
+    pub fn new(shared_device: Arc<DeviceShared>, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let native_device = shared_device.native();
-        let info = MemoryAllocateInfo::default().allocation_size(size).memory_type_index(type_index);
+        let info = MemoryAllocateInfo::default().allocation_size(size).memory_type_index(type_index.0);
         let device_memory = unsafe { native_device.allocate_memory(&info, None)? };
 
         Ok(Self {
@@ -49,7 +56,7 @@ impl AllocationShared {
                 shared_device,
                 device_memory,
                 size,
-                type_index: 0, // TODO
+                type_index: MemoryTypeIndex(0), // TODO
             })
         }
     }
@@ -84,7 +91,7 @@ pub struct Allocation {
 }
 
 impl Allocation {
-    pub fn new(device: &Device, size: u64, type_index: u32) -> Result<Self, Error> {
+    pub fn new(device: &Device, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let allocation_shared = AllocationShared::new(device.shared(), size, type_index)?;
 
         Ok(Self {

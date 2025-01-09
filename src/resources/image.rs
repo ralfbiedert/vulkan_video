@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::allocation::{Allocation, AllocationShared};
+use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
 use crate::device::{Device, DeviceShared};
@@ -25,8 +25,8 @@ impl MemoryRequirements {
         self.alignment
     }
 
-    pub fn any_heap(&self) -> u32 {
-        self.memory_type_bits.trailing_zeros()
+    pub fn any_heap(&self) -> MemoryTypeIndex {
+        MemoryTypeIndex::new(self.memory_type_bits.trailing_zeros())
     }
 }
 

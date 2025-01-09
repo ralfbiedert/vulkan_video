@@ -1,3 +1,4 @@
+use crate::allocation::MemoryTypeIndex;
 use crate::error;
 use crate::error::{Error, Variant};
 use crate::instance::{Instance, InstanceShared};
@@ -72,24 +73,24 @@ impl HeapInfos {
         }
     }
 
-    pub fn any_host_visible(&self) -> Option<u32> {
+    pub fn any_host_visible(&self) -> Option<MemoryTypeIndex> {
         for i in 0..self.memory_properties.memory_type_count as usize {
             let memory_type = self.memory_properties.memory_types[i];
 
             if memory_type.property_flags.contains(MemoryPropertyFlags::HOST_VISIBLE) {
-                return Some(i as u32);
+                return Some(MemoryTypeIndex::new(i as u32));
             }
         }
 
         None
     }
 
-    pub fn any_device_local(&self) -> Option<u32> {
+    pub fn any_device_local(&self) -> Option<MemoryTypeIndex> {
         for i in 0..self.memory_properties.memory_type_count as usize {
             let memory_type = self.memory_properties.memory_types[i];
 
             if memory_type.property_flags.contains(MemoryPropertyFlags::DEVICE_LOCAL) {
-                return Some(i as u32);
+                return Some(MemoryTypeIndex::new(i as u32));
             }
         }
 
