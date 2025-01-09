@@ -100,6 +100,7 @@ impl VideoSessionShared {
 
             let mut video_decode_capabilities = VideoDecodeCapabilitiesKHR::default();
 
+            // Does this order matter?  It seems to work without relevant validation failures either way.
             let mut video_capabilities = VideoCapabilitiesKHR::default()
                 .push_next(&mut video_decode_capabilities)
                 .push_next(&mut video_decode_h264_capabilities);
