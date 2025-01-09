@@ -160,7 +160,9 @@ mod test {
 
         let image = Image::new(&device, &image_info)?;
         let heap_type = image.memory_requirement().any_heap();
-        let _allocation = Allocation::new(&device, 1024 * 1024, heap_type)?;
+        let allocation = Allocation::new(&device, 1024 * 1024, heap_type)?;
+
+        let image = image.bind(&allocation)?;
 
         let image_view_info = ImageViewInfo::new()
             .aspect_mask(ImageAspectFlags::COLOR)
