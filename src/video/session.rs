@@ -16,17 +16,22 @@ use std::sync::Arc;
 
 pub(crate) struct VideoCapabilities {
     min_bitstream_buffer_size_alignment: u64,
+    min_bitstream_buffer_offset_alignment: u64,
 }
 impl From<VideoCapabilitiesKHR<'_>> for VideoCapabilities {
     fn from(value: VideoCapabilitiesKHR) -> Self {
         Self {
             min_bitstream_buffer_size_alignment: value.min_bitstream_buffer_size_alignment,
+            min_bitstream_buffer_offset_alignment: value.min_bitstream_buffer_offset_alignment,
         }
     }
 }
 impl VideoCapabilities {
     pub(crate) fn min_bitstream_buffer_size_alignment(&self) -> u64 {
         self.min_bitstream_buffer_size_alignment
+    }
+    pub(crate) fn min_bitstream_buffer_offset_alignment(&self) -> u64 {
+        self.min_bitstream_buffer_offset_alignment
     }
 }
 
