@@ -34,6 +34,7 @@ pub struct DecodeH264 {
     shared_parameters: Arc<VideoSessionParametersShared>,
     shared_buffer: Arc<BufferShared>,
     shared_image_view: Rc<ImageViewShared>,
+    shared_ref_view: Rc<ImageViewShared>,
     decode_info: DecodeInfo,
 }
 
@@ -42,12 +43,14 @@ impl DecodeH264 {
         buffer: &Buffer,
         video_session_parameters: &VideoSessionParameters,
         target_view: &ImageView,
+        ref_view: &ImageView,
         decode_info: &DecodeInfo,
     ) -> Self {
         Self {
             shared_parameters: video_session_parameters.shared(),
             shared_buffer: buffer.shared(),
             shared_image_view: target_view.shared(),
+            shared_ref_view: ref_view.shared(),
             decode_info: *decode_info,
         }
     }
@@ -63,7 +66,9 @@ impl AddToCommandBuffer for DecodeH264 {
         let native_decode_fns = shared_video_session.decode_fns();
         let native_command_buffer = builder.native_command_buffer();
         let native_view_dst = self.shared_image_view.native();
+        let native_view_ref = self.shared_ref_view.native();
         let native_image_dst = self.shared_image_view.image().native();
+        let native_image_ref = self.shared_ref_view.image().native();
         let native_video_session = shared_video_session.native();
         let native_video_session_parameters = self.shared_parameters.native();
 
@@ -75,9 +80,9 @@ impl AddToCommandBuffer for DecodeH264 {
             .coded_extent(extent)
             .image_view_binding(native_view_dst);
 
-        // let picture_resource_ref = VideoPictureResourceInfoKHR::default()
-        //     .coded_extent(extent)
-        //     .image_view_binding(native_view_ref);
+        let picture_resource_ref = VideoPictureResourceInfoKHR::default()
+            .coded_extent(extent)
+            .image_view_binding(native_view_ref);
 
         let mut f = StdVideoDecodeH264ReferenceInfoFlags {
             _bitfield_align_1: [],
@@ -98,7 +103,7 @@ impl AddToCommandBuffer for DecodeH264 {
         let video_reference_slot = VideoReferenceSlotInfoKHR::default()
             .push_next(&mut video_decode_h264_dpb_slot_info)
             .slot_index(0)
-            .picture_resource(&picture_resource_dst);
+            .picture_resource(&picture_resource_ref);
 
         let begin_coding_info = VideoBeginCodingInfoKHR::default()
             .video_session(native_video_session)
@@ -259,9 +264,12 @@ mod test {
             .extent(Extent3D::default().width(512).height(512).depth(1));
 
         let image_dst = Image::new_video_target(&device, &image_dst_info, &stream_inspector)?;
+        let image_ref = Image::new_video_target(&device, &image_dst_info, &stream_inspector)?;
         let heap_image = image_dst.memory_requirement().any_heap();
         let allocation_image_dst = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
+        let allocation_image_ref = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
         let image_dst = image_dst.bind(&allocation_image_dst)?;
+        let image_ref = image_ref.bind(&allocation_image_ref)?;
 
         let image_view_dst_info = ImageViewInfo::new()
             .aspect_mask(ImageAspectFlags::COLOR)
@@ -270,6 +278,7 @@ mod test {
             .layer_count(1)
             .level_count(1);
         let image_view_dst = ImageView::new(&image_dst, &image_view_dst_info)?;
+        let image_view_ref = ImageView::new(&image_ref, &image_view_dst_info)?;
         let queue_video_decode = physical_device
             .queue_family_infos()
             .any_decode()
@@ -307,7 +316,13 @@ mod test {
         let video_session_parameters = VideoSessionParameters::new(&video_session, &stream_inspector)?;
         let decode_info = DecodeInfo::new(0, 16 * 256);
 
-        let decode = DecodeH264::new(&buffer_h264, &video_session_parameters, &image_view_dst, &decode_info);
+        let decode = DecodeH264::new(
+            &buffer_h264,
+            &video_session_parameters,
+            &image_view_dst,
+            &image_view_ref,
+            &decode_info,
+        );
         let copy = CopyImage2Buffer::new(&image_dst, &buffer_output, ImageAspectFlags::PLANE_0);
 
         queue.build_and_submit(&command_buffer, |x| {
