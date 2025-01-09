@@ -8,8 +8,9 @@ use ash::khr::{video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn, vide
 use ash::vk::{
     self, BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
     VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
-    VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
-    VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
+    VideoDecodeCapabilitiesKHR, VideoDecodeH264CapabilitiesKHR, VideoDecodeH264ProfileInfoKHR, VideoFormatPropertiesKHR,
+    VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR, VideoSessionKHR,
+    VideoSessionMemoryRequirementsKHR,
 };
 use std::ptr::{null, null_mut};
 use std::sync::Arc;
@@ -87,13 +88,21 @@ impl VideoSessionShared {
             let bind_video_session_memory = queue_fns.bind_video_session_memory_khr;
             let memory_requirements = queue_fns.get_video_session_memory_requirements_khr;
 
+            let mut video_decode_h264_profile = VideoDecodeH264ProfileInfoKHR::default();
             let video_profile = VideoProfileInfoKHR::default()
+                .push_next(&mut video_decode_h264_profile)
                 .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
                 .chroma_subsampling(VideoChromaSubsamplingFlagsKHR::TYPE_420)
                 .chroma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
                 .luma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8);
 
-            let mut video_capabilities = VideoCapabilitiesKHR::default();
+            let mut video_decode_h264_capabilities = VideoDecodeH264CapabilitiesKHR::default();
+
+            let mut video_decode_capabilities = VideoDecodeCapabilitiesKHR::default();
+
+            let mut video_capabilities = VideoCapabilitiesKHR::default()
+                .push_next(&mut video_decode_capabilities)
+                .push_next(&mut video_decode_h264_capabilities);
 
             (get_physical_device_video_capabilities)(shared_device.physical_device().native(), &video_profile, &mut video_capabilities)
                 .result()?;
