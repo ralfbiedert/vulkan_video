@@ -71,6 +71,7 @@ impl QueueShared {
             native_device.begin_command_buffer(native_command_buffer, &begin_info)?;
             f(&mut queue_live)?;
             native_device.end_command_buffer(native_command_buffer)?;
+            // TODO - nevermind, this still about 1 in 5 times fails on this line ... (DEVICE LOST)
             native_device.queue_submit(native_queue, &[submit_info], fence)?;
             native_device.wait_for_fences(&[fence], true, u64::MAX)?;
             native_device.destroy_fence(fence, None);
