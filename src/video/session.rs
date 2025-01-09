@@ -3,8 +3,10 @@ use crate::device::{Device, DeviceShared};
 use crate::error;
 use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
-use ash::khr::video_queue::{Instance, InstanceFn};
-use ash::khr::{video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn, video_queue::DeviceFn as KhrVideoQueueDeviceFn};
+use ash::khr::{
+    video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn,
+    video_queue::{DeviceFn as KhrVideoQueueDeviceFn, InstanceFn as KhrVideoQueueInstanceFn},
+};
 use ash::vk::{
     self, BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
     VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
@@ -18,7 +20,7 @@ pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
-    native_video_instance_fns: InstanceFn,
+    native_video_instance_fns: KhrVideoQueueInstanceFn,
     native_session: VideoSessionKHR,
     allocations: Vec<Allocation>,
 }
@@ -75,7 +77,7 @@ impl VideoSessionShared {
                 }, // TODO: Is this guaranteed to exist?
             );
 
-            let video_instance_fn = InstanceFn::load(|x| {
+            let video_instance_fn = KhrVideoQueueInstanceFn::load(|x| {
                 native_entry
                     .get_instance_proc_addr(native_instance.handle(), x.as_ptr().cast())
                     .expect("Must have function pointer") as *const _
@@ -188,7 +190,7 @@ impl VideoSessionShared {
         self.native_decode_queue_fns.clone()
     }
 
-    pub(crate) fn video_instance_fns(&self) -> InstanceFn {
+    pub(crate) fn video_instance_fns(&self) -> KhrVideoQueueInstanceFn {
         self.native_video_instance_fns.clone()
     }
 
