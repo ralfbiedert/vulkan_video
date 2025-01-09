@@ -5,9 +5,8 @@ use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
 use ash::khr::video_queue::{Instance, InstanceFn};
 use ash::khr::{video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn, video_queue::DeviceFn as KhrVideoQueueDeviceFn};
-use ash::vk;
 use ash::vk::{
-    BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
+    self, BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
     VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
     VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
     VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
