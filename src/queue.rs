@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use ash::vk::{CommandBufferBeginInfo, FenceCreateFlags, FenceCreateInfo, SubmitInfo};
+use ash::vk::{CommandBufferBeginInfo, CommandBufferResetFlags, FenceCreateFlags, FenceCreateInfo, SubmitInfo};
 
 use crate::commandbuffer::{CommandBuffer, CommandBufferShared};
 use crate::device::{Device, DeviceShared};
@@ -67,14 +67,14 @@ impl QueueShared {
         unsafe {
             let fence = native_device.create_fence(&fence_info, None)?;
 
+            native_device.reset_command_buffer(native_command_buffer, CommandBufferResetFlags::empty())?;
             native_device.begin_command_buffer(native_command_buffer, &begin_info)?;
-
             f(&mut queue_live)?;
-
             native_device.end_command_buffer(native_command_buffer)?;
             native_device.queue_submit(native_queue, &[submit_info], fence)?;
             native_device.wait_for_fences(&[fence], true, u64::MAX)?;
             native_device.destroy_fence(fence, None);
+            native_device.queue_wait_idle(native_queue)?;
 
             Ok(())
         }

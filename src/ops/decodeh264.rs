@@ -274,8 +274,14 @@ mod test {
             .queue_family_infos()
             .any_decode()
             .ok_or_else(|| error!(Variant::QueueNotFound))?;
+        let queue_compute = physical_device
+            .queue_family_infos()
+            .any_compute()
+            .ok_or_else(|| error!(Variant::QueueNotFound))?;
         let queue = Queue::new(&device, queue_video_decode, 0)?;
+        let queue_copy = Queue::new(&device, queue_compute, 0)?;
         let command_buffer = CommandBuffer::new(&device, queue_video_decode)?;
+        let command_buffer_copy = CommandBuffer::new(&device, queue_compute)?;
 
         // TODO: WHY THIS +256 needed for video buffers?
         let memory_host = physical_device
@@ -306,6 +312,12 @@ mod test {
 
         queue.build_and_submit(&command_buffer, |x| {
             decode.run_in(x)?;
+            Ok(())
+        })?;
+
+        // Copy image2buffer has to run on a queue with compute or graphics capabilities, which
+        // the video decode queue doesn't have on my graphics card
+        queue_copy.build_and_submit(&command_buffer_copy, |x| {
             copy.run_in(x)?;
             Ok(())
         })?;
