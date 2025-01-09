@@ -22,9 +22,9 @@ pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
-    native_video_instance_fns: KhrVideoQueueInstanceFn,
+    // native_video_instance_fns: KhrVideoQueueInstanceFn,
     native_session: VideoSessionKHR,
-    allocations: Vec<Allocation>,
+    // allocations: Vec<Allocation>,
 }
 
 impl VideoSessionShared {
@@ -183,9 +183,9 @@ impl VideoSessionShared {
                 shared_device,
                 native_queue_fns: queue_fns,
                 native_decode_queue_fns: decode_queue_fns,
-                native_video_instance_fns: video_instance_fn,
+                // native_video_instance_fns: video_instance_fn,
                 native_session,
-                allocations,
+                // allocations,
             })
         };
         result
@@ -203,9 +203,9 @@ impl VideoSessionShared {
         self.native_decode_queue_fns.clone()
     }
 
-    pub(crate) fn video_instance_fns(&self) -> KhrVideoQueueInstanceFn {
-        self.native_video_instance_fns.clone()
-    }
+    // pub(crate) fn video_instance_fns(&self) -> KhrVideoQueueInstanceFn {
+    //     self.native_video_instance_fns.clone()
+    // }
 
     pub(crate) fn device(&self) -> Arc<DeviceShared> {
         self.shared_device.clone()

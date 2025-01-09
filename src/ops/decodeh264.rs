@@ -282,10 +282,10 @@ mod test {
             .heap_infos()
             .any_host_visible()
             .ok_or_else(|| error!(Variant::HeapNotFound))?;
-        let memory_device = physical_device
-            .heap_infos()
-            .any_device_local()
-            .ok_or_else(|| error!(Variant::HeapNotFound))?;
+        // let memory_device = physical_device
+        //     .heap_infos()
+        //     .any_device_local()
+        //     .ok_or_else(|| error!(Variant::HeapNotFound))?;
 
         let allocation_h264 = Allocation::new(&device, 1024 * 1024 * 4 + 256, memory_host)?;
         let buffer_info_h264 = BufferInfo::new().size(1024 * 1024 * 4);

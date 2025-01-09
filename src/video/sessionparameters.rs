@@ -18,7 +18,7 @@ pub(crate) struct VideoSessionParametersShared {
 }
 
 impl VideoSessionParametersShared {
-    pub fn new(shared_session: Arc<VideoSessionShared>, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    pub fn new(shared_session: Arc<VideoSessionShared>, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_session = shared_session.native();
         let native_device = shared_session.device().native();
         let native_queue_fns = shared_session.queue_fns();

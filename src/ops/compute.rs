@@ -21,6 +21,7 @@ pub struct Compute<T> {
 }
 
 impl<T: ShaderParameterSet> Compute<T> {
+    #[allow(unused)]
     fn new(pipeline: &Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let shared_pipeline = pipeline.shared();
         let shared_parameters = shared_pipeline.parameters();
@@ -74,7 +75,7 @@ impl<T: ShaderParameterSet> AddToCommandBuffer for Compute<T> {
         let mut acquire_image = Vec::new();
         let mut acquire_buffer = Vec::new();
         let mut release_buffer = Vec::new();
-        let mut release_image = Vec::new();
+        let release_image = Vec::new();
 
         unsafe {
             let descriptor_set = self.native_descriptor_sets[0];

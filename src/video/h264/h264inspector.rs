@@ -59,7 +59,7 @@ impl H264StreamInspector {
                 }
                 UnitType::PicParameterSet => {
                     // TODO: Remove unwrap(), see above.
-                    let pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
+                    let _pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
                 }
                 _ => {} // _ => NalInterest::Ignore,
             }

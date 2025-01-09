@@ -17,8 +17,8 @@ pub(crate) struct AllocationShared {
     shared_instance: Arc<InstanceShared>,
     shared_device: Arc<DeviceShared>,
     device_memory: DeviceMemory,
-    size: u64,
-    type_index: MemoryTypeIndex,
+    // size: u64,
+    // type_index: MemoryTypeIndex,
 }
 
 impl AllocationShared {
@@ -31,8 +31,8 @@ impl AllocationShared {
             shared_instance: shared_device.instance(),
             shared_device,
             device_memory,
-            size,
-            type_index,
+            // size,
+            // type_index,
         })
     }
 
@@ -55,8 +55,8 @@ impl AllocationShared {
                 shared_instance: shared_device.instance(),
                 shared_device,
                 device_memory,
-                size,
-                type_index: MemoryTypeIndex(0), // TODO
+                // size,
+                // type_index: MemoryTypeIndex(0), // TODO
             })
         }
     }

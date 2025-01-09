@@ -119,7 +119,7 @@ impl BufferShared {
         }
     }
 
-    pub fn external(shared_allocation: Arc<AllocationShared>, pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
+    pub fn external(shared_allocation: Arc<AllocationShared>, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
         let shared_device = shared_allocation.device();
         let native_device = shared_device.native();
 
