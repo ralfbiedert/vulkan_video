@@ -103,7 +103,7 @@ impl AddToCommandBuffer for DecodeH264 {
         let video_reference_slot = VideoReferenceSlotInfoKHR::default()
             .push_next(&mut video_decode_h264_dpb_slot_info)
             .slot_index(0)
-            .picture_resource(&picture_resource_ref);
+            .picture_resource(&picture_resource_dst);
 
         let begin_coding_info = VideoBeginCodingInfoKHR::default()
             .video_session(native_video_session)
