@@ -11,12 +11,26 @@ use ash::vk::native::{StdVideoH264ProfileIdc, StdVideoH264ProfileIdc_STD_VIDEO_H
 use ash::vk::{
     self, BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
     VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
-    VideoDecodeCapabilitiesKHR, VideoDecodeH264CapabilitiesKHR, VideoDecodeH264PictureLayoutFlagsKHR, VideoDecodeH264ProfileInfoKHR,
-    VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR, VideoSessionCreateInfoKHR,
-    VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
+    VideoDecodeCapabilitiesKHR, VideoDecodeCapabilityFlagsKHR, VideoDecodeH264CapabilitiesKHR, VideoDecodeH264PictureLayoutFlagsKHR,
+    VideoDecodeH264ProfileInfoKHR, VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR,
+    VideoSessionCreateInfoKHR, VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
 };
 use std::ptr::{null, null_mut};
 use std::sync::Arc;
+
+pub(crate) struct VideoDecodeCapabilities {
+    flags: VideoDecodeCapabilityFlagsKHR,
+}
+impl From<VideoDecodeCapabilitiesKHR<'_>> for VideoDecodeCapabilities {
+    fn from(value: VideoDecodeCapabilitiesKHR) -> Self {
+        Self { flags: value.flags }
+    }
+}
+impl VideoDecodeCapabilities {
+    pub(crate) fn flags(&self) -> VideoDecodeCapabilityFlagsKHR {
+        self.flags
+    }
+}
 
 pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
@@ -25,6 +39,7 @@ pub(crate) struct VideoSessionShared {
     // native_video_instance_fns: KhrVideoQueueInstanceFn,
     native_session: VideoSessionKHR,
     // allocations: Vec<Allocation>,
+    decode_capabilities: VideoDecodeCapabilities,
 }
 
 impl VideoSessionShared {
@@ -186,6 +201,7 @@ impl VideoSessionShared {
                 // native_video_instance_fns: video_instance_fn,
                 native_session,
                 // allocations,
+                decode_capabilities: video_decode_capabilities.into(),
             })
         };
         result
@@ -209,6 +225,10 @@ impl VideoSessionShared {
 
     pub(crate) fn device(&self) -> Arc<DeviceShared> {
         self.shared_device.clone()
+    }
+
+    pub(crate) fn decode_capabilities(&self) -> &VideoDecodeCapabilities {
+        &self.decode_capabilities
     }
 }
 
