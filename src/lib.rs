@@ -83,6 +83,7 @@ mod queue;
 pub mod resources;
 pub mod shader;
 pub mod video;
+mod video_instance;
 
 pub use allocation::Allocation;
 pub use commandbuffer::CommandBuffer;

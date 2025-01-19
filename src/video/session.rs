@@ -3,6 +3,8 @@ use crate::device::{Device, DeviceShared};
 use crate::error;
 use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
+use crate::video::instance::VideoInstance;
+use crate::video::VideoInstanceShared;
 use ash::khr::{
     video_decode_queue::DeviceFn as KhrVideoDecodeQueueDeviceFn,
     video_queue::{DeviceFn as KhrVideoQueueDeviceFn, InstanceFn as KhrVideoQueueInstanceFn},
@@ -33,6 +35,7 @@ impl VideoDecodeCapabilities {
 }
 
 pub(crate) struct VideoSessionShared {
+    video_instance_shared: Arc<VideoInstanceShared>,
     shared_device: Arc<DeviceShared>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
@@ -43,8 +46,8 @@ pub(crate) struct VideoSessionShared {
 }
 
 impl VideoSessionShared {
-    pub fn new(device: &Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared_device = device.shared();
+    pub(crate) fn new(video_instance_shared: Arc<VideoInstanceShared>, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+        let shared_device = video_instance_shared.shared_device();
         let shared_instance = shared_device.instance();
 
         let native_device = shared_device.native();
@@ -109,6 +112,8 @@ impl VideoSessionShared {
             let mut video_decode_h264_profile =
                 VideoDecodeH264ProfileInfoKHR::default().std_profile_idc(StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE);
 
+            let xxx = video_instance_shared.xxx();
+
             let video_profile = VideoProfileInfoKHR::default()
                 .push_next(&mut video_decode_h264_profile)
                 .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
@@ -127,34 +132,6 @@ impl VideoSessionShared {
 
             (get_physical_device_video_capabilities)(shared_device.physical_device().native(), &video_profile, &mut video_capabilities)
                 .result()?;
-
-            let array = &[video_profile];
-
-            let mut video_profile_list_info = VideoProfileListInfoKHR::default().profiles(array);
-
-            let video_format_info = PhysicalDeviceVideoFormatInfoKHR::default()
-                .image_usage(ImageUsageFlags::VIDEO_DECODE_DPB_KHR)
-                .push_next(&mut video_profile_list_info);
-
-            let mut num_video_format_properties = 0;
-
-            (get_physical_device_video_format_properties_khr)(
-                shared_device.physical_device().native(),
-                &video_format_info,
-                &mut num_video_format_properties,
-                null_mut(),
-            )
-            .result()?;
-
-            let mut video_format_properties = vec![VideoFormatPropertiesKHR::default(); num_video_format_properties as usize];
-
-            (get_physical_device_video_format_properties_khr)(
-                shared_device.physical_device().native(),
-                &video_format_info,
-                &mut num_video_format_properties,
-                video_format_properties.as_mut_ptr(),
-            )
-            .result()?;
 
             let mut native_session = VideoSessionKHR::default();
             let mut video_session_count = 0;
@@ -195,6 +172,7 @@ impl VideoSessionShared {
             bind_video_session_memory(native_device.handle(), native_session, bindings.len() as u32, bindings.as_ptr()).result()?;
 
             Ok(Self {
+                video_instance_shared,
                 shared_device,
                 native_queue_fns: queue_fns,
                 native_decode_queue_fns: decode_queue_fns,
@@ -249,8 +227,8 @@ pub struct VideoSession {
 }
 
 impl VideoSession {
-    pub fn new(device: &Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared = VideoSessionShared::new(device, stream_inspector)?;
+    pub fn new(video_instance: &VideoInstance, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+        let shared = VideoSessionShared::new(video_instance.shared(), stream_inspector)?;
 
         Ok(Self { shared: Arc::new(shared) })
     }

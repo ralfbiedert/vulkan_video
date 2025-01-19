@@ -2,7 +2,11 @@ use crate::error;
 use crate::error::{Error, Variant};
 use crate::instance::InstanceShared;
 use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
-use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
+use ash::vk::{
+    DeviceCreateInfo, DeviceQueueCreateInfo, ImageUsageFlags, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features,
+    PhysicalDeviceVideoFormatInfoKHR, VideoFormatPropertiesKHR, VideoProfileListInfoKHR,
+};
+use std::ptr::null_mut;
 use std::sync::Arc;
 
 #[allow(unused)]
