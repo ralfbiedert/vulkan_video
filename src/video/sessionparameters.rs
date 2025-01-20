@@ -205,6 +205,7 @@ mod test {
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
     use crate::video::h264::H264StreamInspector;
+    use crate::video::instance::VideoInstance;
     use crate::video::session::VideoSession;
     use crate::video::sessionparameters::VideoSessionParameters;
 
@@ -216,7 +217,8 @@ mod test {
         let physical_device = PhysicalDevice::new_any(&instance)?;
         let device = Device::new(&physical_device)?;
         let h264inspector = H264StreamInspector::new();
-        let session = VideoSession::new(&device, &h264inspector)?;
+        let video_instance = VideoInstance::new(&device)?;
+        let session = VideoSession::new(&video_instance, &h264inspector)?;
 
         _ = VideoSessionParameters::new(&session, &h264inspector)?;
 

@@ -71,19 +71,19 @@
 //! [docs.rs-badge]: https://docs.rs/vulkan_video/badge.svg
 //! [docs.rs-url]: https://docs.rs/vulkan_video/
 //!
-mod allocation;
-pub(crate) mod commandbuffer;
-mod device;
-mod error;
-mod instance;
 
+pub(crate) mod commandbuffer;
 pub mod ops;
-mod physicaldevice;
-mod queue;
 pub mod resources;
 pub mod shader;
 pub mod video;
-mod video_instance;
+
+mod allocation;
+mod device;
+mod error;
+mod instance;
+mod physicaldevice;
+mod queue;
 
 pub use allocation::Allocation;
 pub use commandbuffer::CommandBuffer;

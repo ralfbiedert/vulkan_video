@@ -1,4 +1,4 @@
-use crate::allocation::{Allocation, MemoryTypeIndex};
+use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
 use crate::device::{Device, DeviceShared};
 use crate::error;
 use crate::error::{Error, Variant};
@@ -39,9 +39,7 @@ pub(crate) struct VideoSessionShared {
     shared_device: Arc<DeviceShared>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
-    // native_video_instance_fns: KhrVideoQueueInstanceFn,
     native_session: VideoSessionKHR,
-    // allocations: Vec<Allocation>,
     decode_capabilities: VideoDecodeCapabilities,
 }
 
@@ -97,41 +95,12 @@ impl VideoSessionShared {
                 }, // TODO: Is this guaranteed to exist?
             );
 
-            let video_instance_fn = KhrVideoQueueInstanceFn::load(|x| {
-                native_entry
-                    .get_instance_proc_addr(native_instance.handle(), x.as_ptr().cast())
-                    .expect("Must have function pointer") as *const _
-            });
-
-            let get_physical_device_video_format_properties_khr = video_instance_fn.get_physical_device_video_format_properties_khr;
-            let get_physical_device_video_capabilities = video_instance_fn.get_physical_device_video_capabilities_khr;
             let create_video_session = queue_fns.create_video_session_khr;
             let bind_video_session_memory = queue_fns.bind_video_session_memory_khr;
             let memory_requirements = queue_fns.get_video_session_memory_requirements_khr;
 
-            let mut video_decode_h264_profile =
-                VideoDecodeH264ProfileInfoKHR::default().std_profile_idc(StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE);
-
-            let xxx = video_instance_shared.xxx();
-
-            let video_profile = VideoProfileInfoKHR::default()
-                .push_next(&mut video_decode_h264_profile)
-                .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
-                .chroma_subsampling(VideoChromaSubsamplingFlagsKHR::TYPE_420)
-                .chroma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
-                .luma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8);
-
-            let mut video_decode_h264_capabilities = VideoDecodeH264CapabilitiesKHR::default();
-
-            let mut video_decode_capabilities = VideoDecodeCapabilitiesKHR::default();
-
-            // Does this order matter?  It seems to work without relevant validation failures either way.
-            let mut video_capabilities = VideoCapabilitiesKHR::default()
-                .push_next(&mut video_decode_capabilities)
-                .push_next(&mut video_decode_h264_capabilities);
-
-            (get_physical_device_video_capabilities)(shared_device.physical_device().native(), &video_profile, &mut video_capabilities)
-                .result()?;
+            let xxx = video_instance_shared.video_format_properties();
+            let video_capabilities = video_instance_shared.video_capabilities()?;
 
             let mut native_session = VideoSessionKHR::default();
             let mut video_session_count = 0;
@@ -158,7 +127,7 @@ impl VideoSessionShared {
                 let supported_types = r.memory_requirements.memory_type_bits;
                 let best_type = MemoryTypeIndex::new(supported_types.trailing_zeros()); // TODO: Better logic to select memory type?
 
-                let allocation = Allocation::new(device, r.memory_requirements.size, best_type)?;
+                let allocation = AllocationShared::new(video_instance_shared.shared_device(), r.memory_requirements.size, best_type)?;
                 let bind = BindVideoSessionMemoryInfoKHR::default()
                     .memory(allocation.native())
                     .memory_bind_index(i as u32)
@@ -176,10 +145,8 @@ impl VideoSessionShared {
                 shared_device,
                 native_queue_fns: queue_fns,
                 native_decode_queue_fns: decode_queue_fns,
-                // native_video_instance_fns: video_instance_fn,
                 native_session,
-                // allocations,
-                decode_capabilities: video_decode_capabilities.into(),
+                decode_capabilities: video_capabilities.decode_caps().into(),
             })
         };
         result
