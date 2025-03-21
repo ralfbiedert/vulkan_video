@@ -44,33 +44,24 @@ impl H264StreamInspector {
     pub fn feed_nal(&mut self, nal: &[u8]) -> Option<XXX> {
         let rval = None;
 
-        // TODO: This is ugly as there does not seem to be a good way to signal errors within this accumulate function.
-        let mut reader = AnnexBReader::accumulate(|nal: RefNal<'_>| {
-            let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
-            let bits = nal.rbsp_bits();
+        let nal = RefNal::new(nal, &[], true);
+        let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
+        let bits = nal.rbsp_bits();
 
-            match nal_unit_type {
-                UnitType::SeqParameterSet => {
-                    let sps = SeqParameterSet::from_bits(bits).unwrap(); // TODO: Remove unwrap(), see above.
+        match nal_unit_type {
+            UnitType::SeqParameterSet => {
+                let sps = SeqParameterSet::from_bits(bits).unwrap(); // TODO: Remove unwrap(), see above.
 
-                    dbg!(&sps.chroma_info);
+                dbg!(&sps.chroma_info);
 
-                    self.h264_context.put_seq_param_set(sps);
-                }
-                UnitType::PicParameterSet => {
-                    // TODO: Remove unwrap(), see above.
-                    let _pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
-                }
-                _ => {} // _ => NalInterest::Ignore,
+                self.h264_context.put_seq_param_set(sps);
             }
-
-            NalInterest::Ignore // TODO: What's the right choice?
-        });
-
-        self.h264_feeding_vec.clear();
-        self.h264_feeding_vec.extend_from_slice(nal);
-        self.h264_feeding_vec.extend_from_slice(&[0x00, 0x00]); // For whatever reason we need these as well
-        reader.push(self.h264_feeding_vec.as_slice());
+            UnitType::PicParameterSet => {
+                // TODO: Remove unwrap(), see above.
+                let _pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
+            }
+            _ => {} // _ => NalInterest::Ignore,
+        }
 
         rval
     }
