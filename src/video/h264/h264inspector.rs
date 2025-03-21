@@ -44,8 +44,7 @@ impl H264StreamInspector {
     pub fn feed_nal(&mut self, nal: &[u8]) -> Option<XXX> {
         let rval = None;
 
-        // TODO: This is ugly as there does not seem to be a good way to signal errors within this accumulate function.
-        let mut reader = AnnexBReader::accumulate(|nal: RefNal<'_>| {
+        let nal = RefNal::new(nal, &[], true);
             let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
             let bits = nal.rbsp_bits();
 
@@ -63,14 +62,6 @@ impl H264StreamInspector {
                 }
                 _ => {} // _ => NalInterest::Ignore,
             }
-
-            NalInterest::Ignore // TODO: What's the right choice?
-        });
-
-        self.h264_feeding_vec.clear();
-        self.h264_feeding_vec.extend_from_slice(nal);
-        self.h264_feeding_vec.extend_from_slice(&[0x00, 0x00]); // For whatever reason we need these as well
-        reader.push(self.h264_feeding_vec.as_slice());
 
         rval
     }
