@@ -45,23 +45,23 @@ impl H264StreamInspector {
         let rval = None;
 
         let nal = RefNal::new(nal, &[], true);
-            let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
-            let bits = nal.rbsp_bits();
+        let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
+        let bits = nal.rbsp_bits();
 
-            match nal_unit_type {
-                UnitType::SeqParameterSet => {
-                    let sps = SeqParameterSet::from_bits(bits).unwrap(); // TODO: Remove unwrap(), see above.
+        match nal_unit_type {
+            UnitType::SeqParameterSet => {
+                let sps = SeqParameterSet::from_bits(bits).unwrap(); // TODO: Remove unwrap(), see above.
 
-                    dbg!(&sps.chroma_info);
+                dbg!(&sps.chroma_info);
 
-                    self.h264_context.put_seq_param_set(sps);
-                }
-                UnitType::PicParameterSet => {
-                    // TODO: Remove unwrap(), see above.
-                    let _pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
-                }
-                _ => {} // _ => NalInterest::Ignore,
+                self.h264_context.put_seq_param_set(sps);
             }
+            UnitType::PicParameterSet => {
+                // TODO: Remove unwrap(), see above.
+                let _pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
+            }
+            _ => {} // _ => NalInterest::Ignore,
+        }
 
         rval
     }
