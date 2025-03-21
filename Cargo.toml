@@ -10,4 +10,4 @@ license = "BSD-2-Clause"
 
 [dependencies]
 ash = "0.38.0"
-h264-reader = "0.7.0"
+h264-reader = "0.8.0"
