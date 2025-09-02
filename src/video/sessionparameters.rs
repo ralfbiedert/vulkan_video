@@ -6,8 +6,8 @@ use ash::vk::native::{
     StdVideoH264SequenceParameterSet, StdVideoH264SequenceParameterSetVui, StdVideoH264SpsFlags, StdVideoH264SpsVuiFlags,
 };
 use ash::vk::{
-    VideoDecodeH264SessionParametersAddInfoKHR, VideoDecodeH264SessionParametersCreateInfoKHR, VideoSessionParametersCreateInfoKHR,
-    VideoSessionParametersKHR, VideoSessionParametersUpdateInfoKHR,
+    TaggedStructure, VideoDecodeH264SessionParametersAddInfoKHR, VideoDecodeH264SessionParametersCreateInfoKHR,
+    VideoSessionParametersCreateInfoKHR, VideoSessionParametersKHR, VideoSessionParametersUpdateInfoKHR,
 };
 use std::ptr::{addr_of, addr_of_mut, null};
 use std::sync::Arc;
@@ -140,9 +140,8 @@ impl VideoSessionParametersShared {
             .max_std_pps_count(256)
             .parameters_add_info(&create_info);
 
-        let session_create_info = VideoSessionParametersCreateInfoKHR::default()
-            .video_session(native_session)
-            .push_next(&mut video_decode_h264session_parameters_create_info);
+        let session_create_info = VideoSessionParametersCreateInfoKHR::default().video_session(native_session);
+        let session_create_info = unsafe { session_create_info.extend(&mut video_decode_h264session_parameters_create_info) };
 
         unsafe {
             let mut native_parameters = VideoSessionParametersKHR::null();

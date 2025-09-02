@@ -10,7 +10,7 @@ use ash::khr::{
 use ash::vk::native::{StdVideoH264ProfileIdc, StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE};
 use ash::vk::{
     self, BindVideoSessionMemoryInfoKHR, ExtensionProperties, Extent2D, Format, ImageUsageFlags, PhysicalDeviceVideoFormatInfoKHR,
-    VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
+    TaggedStructure, VideoCapabilitiesKHR, VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR,
     VideoDecodeCapabilitiesKHR, VideoDecodeCapabilityFlagsKHR, VideoDecodeH264CapabilitiesKHR, VideoDecodeH264PictureLayoutFlagsKHR,
     VideoDecodeH264ProfileInfoKHR, VideoFormatPropertiesKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR, VideoSessionCreateFlagsKHR,
     VideoSessionCreateInfoKHR, VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
@@ -110,7 +110,7 @@ impl VideoSessionShared {
                 VideoDecodeH264ProfileInfoKHR::default().std_profile_idc(StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE);
 
             let video_profile = VideoProfileInfoKHR::default()
-                .push_next(&mut video_decode_h264_profile)
+                .extend(&mut video_decode_h264_profile)
                 .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
                 .chroma_subsampling(VideoChromaSubsamplingFlagsKHR::TYPE_420)
                 .chroma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
@@ -122,8 +122,8 @@ impl VideoSessionShared {
 
             // Does this order matter?  It seems to work without relevant validation failures either way.
             let mut video_capabilities = VideoCapabilitiesKHR::default()
-                .push_next(&mut video_decode_capabilities)
-                .push_next(&mut video_decode_h264_capabilities);
+                .extend(&mut video_decode_capabilities)
+                .extend(&mut video_decode_h264_capabilities);
 
             (get_physical_device_video_capabilities)(shared_device.physical_device().native(), &video_profile, &mut video_capabilities)
                 .result()?;
@@ -134,7 +134,7 @@ impl VideoSessionShared {
 
             let video_format_info = PhysicalDeviceVideoFormatInfoKHR::default()
                 .image_usage(ImageUsageFlags::VIDEO_DECODE_DPB_KHR)
-                .push_next(&mut video_profile_list_info);
+                .extend(&mut video_profile_list_info);
 
             let mut num_video_format_properties = 0;
 

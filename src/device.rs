@@ -2,7 +2,7 @@ use crate::error;
 use crate::error::{Error, Variant};
 use crate::instance::InstanceShared;
 use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
-use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
+use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features, TaggedStructure};
 use std::sync::Arc;
 
 #[allow(unused)]
@@ -41,12 +41,13 @@ impl DeviceShared {
         }
 
         let mut sync_features = PhysicalDeviceSynchronization2Features::default().synchronization2(true);
-        let mut device_features = PhysicalDeviceFeatures2::default().push_next(&mut sync_features);
+        let device_features = PhysicalDeviceFeatures2::default();
+        let mut device_features = unsafe { device_features.extend(&mut sync_features) };
 
         let create_info = DeviceCreateInfo::default()
             .queue_create_infos(&create_infos)
-            .push_next(&mut device_features)
             .enabled_extension_names(device_extensions.as_slice());
+        let create_info = unsafe { create_info.extend(&mut device_features) };
 
         unsafe {
             let native_device = native_instance.create_device(native_physical_device, &create_info, None)?;

@@ -1,7 +1,7 @@
 use crate::device::{Device, DeviceShared};
 use crate::error::Error;
 use crate::instance::InstanceShared;
-use ash::vk::{DeviceMemory, ExternalMemoryHandleTypeFlags, ImportMemoryFdInfoKHR, MemoryAllocateInfo};
+use ash::vk::{DeviceMemory, ExternalMemoryHandleTypeFlags, ImportMemoryFdInfoKHR, MemoryAllocateInfo, TaggedStructure};
 use std::ffi::c_void;
 use std::sync::Arc;
 
@@ -43,10 +43,9 @@ impl AllocationShared {
             .handle_type(ExternalMemoryHandleTypeFlags::OPAQUE_WIN32) // TODO
             .fd(external as _);
 
-        let info = MemoryAllocateInfo::default()
-            .allocation_size(size)
-            .memory_type_index(3) // TODO!!
-            .push_next(&mut todo_bad);
+        let info = MemoryAllocateInfo::default().allocation_size(size).memory_type_index(3); // TODO!!
+
+        let info = unsafe { info.extend(&mut todo_bad) };
 
         unsafe {
             let device_memory = native_device.allocate_memory(&info, None)?;

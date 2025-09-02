@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
-use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
+use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags, TaggedStructure};
 
 use crate::device::{Device, DeviceShared};
 use crate::error;
@@ -120,7 +120,7 @@ impl ImageShared {
             .image_type(info.image_type)
             .tiling(info.tiling)
             .initial_layout(info.layout)
-            // .push_next(&mut video_profile_list_info_khr)
+            // .extend(&mut video_profile_list_info_khr)
             .extent(info.extent);
 
         unsafe {
@@ -151,7 +151,7 @@ impl ImageShared {
                 .image_type(info.image_type)
                 .tiling(info.tiling)
                 .initial_layout(info.layout)
-                .push_next(&mut profiles_inner.list)
+                .extend(&mut profiles_inner.list)
                 .extent(info.extent);
 
             let native_image = native_device.create_image(&create_image, None)?;

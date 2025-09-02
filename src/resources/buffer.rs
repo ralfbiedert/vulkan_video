@@ -5,7 +5,7 @@ use crate::video::h264::H264StreamInspector;
 use ash::vk;
 use ash::vk::{
     BufferCreateInfo, BufferUsageFlags, DeviceSize, ExternalMemoryBufferCreateInfo, ExternalMemoryHandleTypeFlags, MappedMemoryRange,
-    MemoryMapFlags, WHOLE_SIZE,
+    MemoryMapFlags, TaggedStructure, WHOLE_SIZE,
 };
 use std::ffi::c_void;
 use std::sync::Arc;
@@ -102,7 +102,7 @@ impl BufferShared {
             let buffer_create_info = BufferCreateInfo::default()
                 .size(buffer_info.size)
                 .usage(usage)
-                .push_next(profile_infos);
+                .extend(profile_infos);
 
             let device_buffer = native_device.create_buffer(&buffer_create_info, None)?;
             let device_memory = shared_allocation.native();
@@ -131,7 +131,7 @@ impl BufferShared {
         let mut eee = ExternalMemoryBufferCreateInfo::default().handle_types(ExternalMemoryHandleTypeFlags::OPAQUE_WIN32);
 
         unsafe {
-            let buffer_create_info = BufferCreateInfo::default().size(buffer_info.size).usage(usage).push_next(&mut eee);
+            let buffer_create_info = BufferCreateInfo::default().size(buffer_info.size).usage(usage).extend(&mut eee);
 
             let device_buffer = native_device.create_buffer(&buffer_create_info, None)?;
             let device_memory = shared_allocation.native();

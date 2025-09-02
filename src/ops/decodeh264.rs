@@ -9,9 +9,9 @@ use ash::vk::native::{
 };
 use ash::vk::{
     AccessFlags2, BufferMemoryBarrier2, DependencyInfoKHR, Extent2D, ImageAspectFlags, ImageLayout, ImageMemoryBarrier2,
-    ImageSubresourceRange, PipelineStageFlags2, VideoBeginCodingInfoKHR, VideoCodingControlFlagsKHR, VideoCodingControlInfoKHR,
-    VideoDecodeCapabilityFlagsKHR, VideoDecodeH264DpbSlotInfoKHR, VideoDecodeH264PictureInfoKHR, VideoDecodeInfoKHR, VideoEndCodingInfoKHR,
-    VideoPictureResourceInfoKHR, VideoReferenceSlotInfoKHR, QUEUE_FAMILY_IGNORED,
+    ImageSubresourceRange, PipelineStageFlags2, TaggedStructure, VideoBeginCodingInfoKHR, VideoCodingControlFlagsKHR,
+    VideoCodingControlInfoKHR, VideoDecodeCapabilityFlagsKHR, VideoDecodeH264DpbSlotInfoKHR, VideoDecodeH264PictureInfoKHR,
+    VideoDecodeInfoKHR, VideoEndCodingInfoKHR, VideoPictureResourceInfoKHR, VideoReferenceSlotInfoKHR, QUEUE_FAMILY_IGNORED,
 };
 use std::rc::Rc;
 use std::sync::Arc;
@@ -113,9 +113,9 @@ impl AddToCommandBuffer for DecodeH264 {
         };
 
         let video_reference_slot = VideoReferenceSlotInfoKHR::default()
-            .push_next(&mut video_decode_h264_dpb_slot_info)
             .slot_index(0)
             .picture_resource(picture_resource_choice);
+        let video_reference_slot = unsafe { video_reference_slot.extend(&mut video_decode_h264_dpb_slot_info) };
 
         let begin_coding_info = VideoBeginCodingInfoKHR::default()
             .video_session(native_video_session)
@@ -147,13 +147,13 @@ impl AddToCommandBuffer for DecodeH264 {
         let mut video_decode_info_h264 = VideoDecodeH264PictureInfoKHR::default().std_picture_info(&std).slice_offsets(&[0]);
 
         let video_decode_info = VideoDecodeInfoKHR::default()
-            .push_next(&mut video_decode_info_h264)
             .src_buffer(native_buffer_h264)
             .src_buffer_offset(self.decode_info.offset)
             .src_buffer_range(self.decode_info.size)
             // .src_buffer_range(2736)
             .dst_picture_resource(picture_resource_dst)
             .setup_reference_slot(&video_reference_slot);
+        let video_decode_info = unsafe { video_decode_info.extend(&mut video_decode_info_h264) };
 
         unsafe {
             let ssr = ImageSubresourceRange::default()
