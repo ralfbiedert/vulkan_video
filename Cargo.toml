@@ -9,5 +9,5 @@ license = "BSD-2-Clause"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ash = "0.38.0"
+ash = { git = "https://github.com/ash-rs/ash", version = "0.38.0" }
 h264-reader = "0.8.0"
