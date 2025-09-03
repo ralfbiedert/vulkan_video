@@ -20,8 +20,7 @@ pub(crate) struct VideoSessionParametersShared {
 impl VideoSessionParametersShared {
     pub fn new(shared_session: Arc<VideoSessionShared>, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_session = shared_session.native();
-        let native_device = shared_session.device().native();
-        let native_queue_fns = shared_session.queue_fns();
+        let native_queue_device = shared_session.queue_device();
 
         let hrd = StdVideoH264HrdParameters {
             cpb_cnt_minus1: 0,
@@ -144,12 +143,8 @@ impl VideoSessionParametersShared {
         let session_create_info = unsafe { session_create_info.extend(&mut video_decode_h264session_parameters_create_info) };
 
         unsafe {
-            let mut native_parameters = VideoSessionParametersKHR::null();
-            let create_video_session_parameters = native_queue_fns.create_video_session_parameters_khr;
-            // let update_video_session_parameters = native_queue_fns.update_video_session_parameters_khr;
-
-            create_video_session_parameters(native_device.handle(), &session_create_info, null(), &mut native_parameters).result()?;
-            // update_video_session_parameters(native_device.handle(), native_parameters, &update).result()?;
+            let native_parameters = native_queue_device.create_video_session_parameters(&session_create_info, None)?;
+            // let update_video_session_parameters = native_queue_device.update_video_session_parameters(native_parameters, &update)?;
 
             Ok(Self {
                 shared_session,
@@ -169,13 +164,10 @@ impl VideoSessionParametersShared {
 
 impl Drop for VideoSessionParametersShared {
     fn drop(&mut self) {
-        let queue_fns = self.shared_session.queue_fns();
-        let native_device = self.shared_session.device().native();
-
-        let destroy_video_session_parameters_khr = queue_fns.destroy_video_session_parameters_khr;
+        let queue_device = self.shared_session.queue_device();
 
         unsafe {
-            destroy_video_session_parameters_khr(native_device.handle(), self.native_parameters, null());
+            queue_device.destroy_video_session_parameters(self.native_parameters, None);
         }
     }
 }

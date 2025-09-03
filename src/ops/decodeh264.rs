@@ -62,8 +62,8 @@ impl AddToCommandBuffer for DecodeH264 {
 
         let native_buffer_h264 = self.shared_buffer.native();
         let native_device = shared_video_session.device().native();
-        let native_queue_fns = shared_video_session.queue_fns();
-        let native_decode_fns = shared_video_session.decode_fns();
+        let native_queue_device = shared_video_session.queue_device();
+        let native_decode_device = shared_video_session.decode_queue_device();
         let native_command_buffer = builder.native_command_buffer();
         let native_view_dst = self.shared_image_view.native();
         let native_view_ref = self.shared_ref_view.native();
@@ -219,10 +219,10 @@ impl AddToCommandBuffer for DecodeH264 {
                 .image_memory_barriers(image_barriers_release);
 
             native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info);
-            (native_queue_fns.cmd_begin_video_coding_khr)(native_command_buffer, &begin_coding_info);
-            (native_queue_fns.cmd_control_video_coding_khr)(native_command_buffer, &video_coding_control);
-            (native_decode_fns.cmd_decode_video_khr)(native_command_buffer, &video_decode_info);
-            (native_queue_fns.cmd_end_video_coding_khr)(native_command_buffer, &end_coding_info);
+            native_queue_device.cmd_begin_video_coding(native_command_buffer, &begin_coding_info);
+            native_queue_device.cmd_control_video_coding(native_command_buffer, &video_coding_control);
+            native_decode_device.cmd_decode_video(native_command_buffer, &video_decode_info);
+            native_queue_device.cmd_end_video_coding(native_command_buffer, &end_coding_info);
             native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info_release);
 
             Ok(())
