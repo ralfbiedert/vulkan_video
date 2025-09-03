@@ -25,7 +25,6 @@ pub struct VideoProfileInfoBundle<'a> {
 #[derive(Default)]
 pub struct H264StreamInspector {
     h264_context: Context,
-    h264_feeding_vec: Vec<u8>,
 }
 
 pub enum XXX {
@@ -37,7 +36,6 @@ impl H264StreamInspector {
     pub fn new() -> Self {
         Self {
             h264_context: Default::default(),
-            h264_feeding_vec: Vec::with_capacity(32 * 1024),
         }
     }
 
