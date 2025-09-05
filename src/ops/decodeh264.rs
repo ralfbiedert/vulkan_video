@@ -117,9 +117,11 @@ impl AddToCommandBuffer for DecodeH264 {
             .slot_index(0)
             .picture_resource(picture_resource_choice);
 
+        let reference_slots = &[video_reference_slot];
         let begin_coding_info = VideoBeginCodingInfoKHR::default()
             .video_session(native_video_session)
-            .video_session_parameters(native_video_session_parameters);
+            .video_session_parameters(native_video_session_parameters)
+            .reference_slots(reference_slots);
 
         let end_coding_info = VideoEndCodingInfoKHR::default();
 
