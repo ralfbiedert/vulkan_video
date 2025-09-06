@@ -95,15 +95,14 @@ impl ImageInfo {
     }
 }
 
-/// An `Image` that has yet to be bound.  Call .bind() to construct an `Image`.
-pub struct UnboundImage<'a> {
+struct ImageInner<'a> {
     device: &'a Device<'a>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
-impl<'a> UnboundImage<'a> {
-    pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
+impl<'a> ImageInner<'a> {
+    fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = device.native();
 
         let create_image = ImageCreateInfo::default()
@@ -129,7 +128,7 @@ impl<'a> UnboundImage<'a> {
         }
     }
 
-    pub fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_device = device.native();
 
         unsafe {
@@ -158,24 +157,7 @@ impl<'a> UnboundImage<'a> {
         }
     }
 
-    #[must_use]
-    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a>, Error> {
-        let native_device = self.device.native();
-        let native_image = self.native_image;
-        let native_allocation = allocation.native();
-
-        unsafe {
-            native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
-        }
-
-        Ok(Image {
-            device: self.device,
-            native_image,
-            info: self.info,
-        })
-    }
-
-    pub fn memory_requirement(&self) -> MemoryRequirements {
+    fn memory_requirement(&self) -> MemoryRequirements {
         let native_device = self.device.native();
 
         unsafe {
@@ -190,28 +172,60 @@ impl<'a> UnboundImage<'a> {
     }
 }
 
+/// An `Image` that has yet to be bound.  Call .bind() to construct an `Image`.
+pub struct UnboundImage<'a> {
+    inner: ImageInner<'a>,
+}
+
+impl<'a> UnboundImage<'a> {
+    pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
+        let inner = ImageInner::new(device, info)?;
+        Ok(Self { inner })
+    }
+    pub fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+        let inner = ImageInner::new_video_target(device, info, stream_inspector)?;
+        Ok(Self { inner })
+    }
+
+    #[must_use]
+    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a>, Error> {
+        let inner = self.inner;
+        let native_device = inner.device.native();
+        let native_image = inner.native_image;
+        let native_allocation = allocation.native();
+
+        unsafe {
+            native_device.bind_image_memory(native_image, native_allocation, inner.info.bind_offset)?;
+        }
+
+        Ok(Image { inner })
+    }
+
+    pub fn memory_requirement(&self) -> MemoryRequirements {
+        self.inner.memory_requirement()
+    }
+}
+
 /// A often 2D image, usually stored on the GPU.
 pub struct Image<'a> {
-    device: &'a Device<'a>,
-    native_image: ash::vk::Image,
-    info: ImageInfo,
+    inner: ImageInner<'a>,
 }
 
 impl<'a> Image<'a> {
     pub(crate) fn native(&self) -> ash::vk::Image {
-        self.native_image
+        self.inner.native_image
     }
 
     pub(crate) fn device(&self) -> &Device<'_> {
-        &self.device
+        &self.inner.device
     }
 
     pub(crate) fn info(&self) -> ImageInfo {
-        self.info.clone()
+        self.inner.info.clone()
     }
 }
 
-impl<'a> Drop for Image<'a> {
+impl<'a> Drop for ImageInner<'a> {
     fn drop(&mut self) {
         let native_device = self.device.native();
 
