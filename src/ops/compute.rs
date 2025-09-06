@@ -21,7 +21,6 @@ pub struct Compute<T> {
 }
 
 impl<T: ShaderParameterSet> Compute<T> {
-    #[expect(unused)]
     fn new(pipeline: &Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let shared_pipeline = pipeline.shared();
         let shared_parameters = shared_pipeline.parameters();

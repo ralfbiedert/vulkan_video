@@ -5,7 +5,6 @@ use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
 use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
 use std::sync::Arc;
 
-#[expect(unused)]
 pub(crate) struct DeviceShared {
     native_device: ash::Device,
     shared_physical_device: Arc<PhysicalDeviceShared>,
@@ -64,7 +63,6 @@ impl DeviceShared {
         Self::new_with_families(shared_physical_device, &infos)
     }
 
-    #[expect(unused)]
     pub(crate) fn physical_device(&self) -> Arc<PhysicalDeviceShared> {
         self.shared_physical_device.clone()
     }

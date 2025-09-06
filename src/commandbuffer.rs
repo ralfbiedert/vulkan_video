@@ -4,7 +4,6 @@ use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
 use std::sync::Arc;
 
-#[expect(unused)]
 pub(crate) struct CommandBufferShared {
     shared_device: Arc<DeviceShared>,
     native_command_pool: ash::vk::CommandPool,
@@ -57,7 +56,6 @@ impl Drop for CommandBufferShared {
 }
 
 /// Stores commands related to a specific queue family.
-#[expect(unused)]
 pub struct CommandBuffer {
     shared: Arc<CommandBufferShared>,
 }
