@@ -6,7 +6,6 @@ use ash::vk::{ShaderModule, ShaderModuleCreateInfo};
 use std::ffi::{CStr, CString};
 use std::sync::Arc;
 
-#[expect(unused)]
 pub(crate) struct ShaderShared<T> {
     shared_device: Arc<DeviceShared>,
     shared_parameters: Arc<ParametersShared<T>>,
