@@ -98,13 +98,13 @@ impl ImageInfo {
     }
 }
 
-pub(crate) struct UnboundImageShared {
+pub(crate) struct ImageShared {
     shared_device: Arc<DeviceShared>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
-impl UnboundImageShared {
+impl ImageShared {
     fn new(shared_device: Arc<DeviceShared>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
@@ -160,7 +160,7 @@ impl UnboundImageShared {
         }
     }
 
-    pub fn bind(self, shared_allocation: Arc<AllocationShared>) -> Result<ImageShared, Error> {
+    pub fn bind(self, shared_allocation: Arc<AllocationShared>) -> Result<Self, Error> {
         let native_device = self.shared_device.native();
         let native_image = self.native_image;
         let native_allocation = shared_allocation.native();
@@ -169,11 +169,7 @@ impl UnboundImageShared {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
         }
 
-        Ok(ImageShared {
-            shared_device: self.shared_device,
-            native_image,
-            info: self.info,
-        })
+        Ok(self)
     }
 
     pub(crate) fn memory_requirement(&self) -> MemoryRequirements {
@@ -189,15 +185,7 @@ impl UnboundImageShared {
             }
         }
     }
-}
 
-pub(crate) struct ImageShared {
-    shared_device: Arc<DeviceShared>,
-    native_image: ash::vk::Image,
-    info: ImageInfo,
-}
-
-impl ImageShared {
     pub(crate) fn native(&self) -> ash::vk::Image {
         self.native_image
     }
@@ -223,18 +211,18 @@ impl Drop for ImageShared {
 
 /// An `Image` that has yet to be bound.  Call .bind() to construct an `Image`.
 pub struct UnboundImage {
-    shared: UnboundImageShared,
+    shared: ImageShared,
 }
 
 impl UnboundImage {
     pub fn new(device: &Device, info: &ImageInfo) -> Result<Self, Error> {
-        let shared_device = UnboundImageShared::new(device.shared(), info)?;
+        let shared_device = ImageShared::new(device.shared(), info)?;
 
         Ok(Self { shared: shared_device })
     }
 
     pub fn new_video_target(device: &Device, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared_device = UnboundImageShared::new_video_target(device.shared(), info, stream_inspector)?;
+        let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
 
         Ok(Self { shared: shared_device })
     }
