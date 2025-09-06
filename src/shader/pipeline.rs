@@ -1,24 +1,24 @@
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error;
 use crate::error::{Error, Variant};
-use crate::shader::parameters::ParametersShared;
-use crate::shader::shader::{Shader, ShaderShared};
+use crate::shader::parameters::Parameters;
+use crate::shader::shader::Shader;
 use crate::shader::ShaderParameterSet;
 use ash::vk::{
     ComputePipelineCreateInfo, PipelineCache, PipelineLayout, PipelineLayoutCreateInfo, PipelineShaderStageCreateInfo, ShaderStageFlags,
 };
 
 #[allow(unused)]
-pub(crate) struct PipelineShared<'a, T> {
-    shared_device: &'a DeviceShared<'a>,
-    shared_shader: &'a ShaderShared<'a, T>,
-    shared_parameters: &'a ParametersShared<'a, T>,
+pub struct Pipeline<'a, T> {
+    shared_device: &'a Device<'a>,
+    shared_shader: &'a Shader<'a, T>,
+    shared_parameters: &'a Parameters<'a, T>,
     native_layout: PipelineLayout,
     native_pipeline: ash::vk::Pipeline,
 }
 
-impl<'a, T: ShaderParameterSet> PipelineShared<'a, T> {
-    pub(crate) fn new(shared_device: &'a DeviceShared<'a>, shared_shader: &'a ShaderShared<T>) -> Result<Self, Error> {
+impl<'a, T: ShaderParameterSet> Pipeline<'a, T> {
+    pub fn new(shared_device: &'a Device<'a>, shared_shader: &'a Shader<T>) -> Result<Self, Error> {
         let native_device = shared_device.native();
         let shared_parameters = shared_shader.parameters();
 
@@ -65,12 +65,12 @@ impl<'a, T: ShaderParameterSet> PipelineShared<'a, T> {
         }
     }
 
-    pub(crate) fn parameters(&self) -> &ParametersShared<'_, T> {
+    pub(crate) fn parameters(&self) -> &Parameters<'_, T> {
         &self.shared_parameters
     }
 }
 
-impl<'a, T> PipelineShared<'a, T> {
+impl<'a, T> Pipeline<'a, T> {
     pub(crate) fn native(&self) -> ash::vk::Pipeline {
         self.native_pipeline
     }
@@ -79,12 +79,12 @@ impl<'a, T> PipelineShared<'a, T> {
         self.native_layout
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared<'_> {
+    pub(crate) fn device(&self) -> &Device<'_> {
         &self.shared_device
     }
 }
 
-impl<'a, T> Drop for PipelineShared<'a, T> {
+impl<'a, T> Drop for Pipeline<'a, T> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
 
@@ -92,30 +92,6 @@ impl<'a, T> Drop for PipelineShared<'a, T> {
             native_device.destroy_pipeline(self.native_pipeline, None);
             native_device.destroy_pipeline_layout(self.native_layout, None);
         }
-    }
-}
-
-/// Configuration how exactly a [Shader](Shader) should be invoked.
-#[allow(unused)]
-pub struct Pipeline<'a, T: ShaderParameterSet> {
-    shared: PipelineShared<'a, T>,
-}
-
-impl<'a, T: ShaderParameterSet> Pipeline<'a, T> {
-    pub fn new(device: &'a Device, shader: &'a Shader<T>) -> Result<Self, Error> {
-        let shared = PipelineShared::new(device.shared(), shader.shared())?;
-
-        Ok(Self { shared })
-    }
-
-    #[allow(unused)]
-    pub(crate) fn shared(&self) -> &PipelineShared<'_, T> {
-        &self.shared
-    }
-
-    #[allow(unused)]
-    pub(crate) fn layout(&self) -> ash::vk::PipelineLayout {
-        self.shared.layout()
     }
 }
 

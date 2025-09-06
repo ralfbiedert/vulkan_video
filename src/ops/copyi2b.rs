@@ -1,21 +1,21 @@
 use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
-use crate::resources::{Buffer, BufferShared, Image, ImageShared};
+use crate::resources::{Buffer, Image};
 use ash::vk::{BufferImageCopy, ImageAspectFlags, ImageLayout, ImageSubresourceLayers};
 
 /// Performs an image-to-buffer copy operation.
 pub struct CopyImage2Buffer<'a> {
-    image: &'a ImageShared<'a>,
-    buffer: &'a BufferShared<'a>,
+    image: &'a Image<'a>,
+    buffer: &'a Buffer<'a>,
     aspect_mask: ImageAspectFlags,
 }
 
 impl<'a> CopyImage2Buffer<'a> {
     pub fn new(image: &'a Image<'a>, buffer: &'a Buffer<'a>, aspect_mask: ImageAspectFlags) -> Self {
         Self {
-            image: image.shared(),
-            buffer: buffer.shared(),
+            image,
+            buffer,
             aspect_mask,
         }
     }

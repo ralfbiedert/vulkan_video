@@ -1,23 +1,19 @@
 use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
-use crate::resources::{Buffer, BufferShared};
+use crate::resources::Buffer;
 use ash::vk::BufferCopy;
 
 /// Performs a buffer-to-buffer copy operation.
 pub struct CopyBuffer2Buffer<'a> {
-    source: &'a BufferShared<'a>,
-    destination: &'a BufferShared<'a>,
+    source: &'a Buffer<'a>,
+    destination: &'a Buffer<'a>,
     size: u64,
 }
 
 impl<'a> CopyBuffer2Buffer<'a> {
     pub fn new(source: &'a Buffer<'a>, destination: &'a Buffer<'a>, size: u64) -> Self {
-        Self {
-            source: source.shared(),
-            destination: destination.shared(),
-            size,
-        }
+        Self { source, destination, size }
     }
 }
 

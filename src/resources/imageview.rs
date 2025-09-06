@@ -1,8 +1,7 @@
 use ash::vk::{Format, ImageAspectFlags, ImageSubresourceRange, ImageViewCreateInfo, ImageViewType};
 
-use crate::device::DeviceShared;
+use crate::device::Device;
 use crate::error::Error;
-use crate::resources::image::ImageShared;
 use crate::resources::Image;
 
 /// Specifies how to crate an  [`ImageView`](ImageView).
@@ -46,14 +45,15 @@ impl ImageViewInfo {
     }
 }
 
-pub(crate) struct ImageViewShared<'a> {
-    shared_image: &'a ImageShared<'a>,
-    shared_device: &'a DeviceShared<'a>,
+/// View of an [`Image`](Image).
+pub struct ImageView<'a> {
+    shared_image: &'a Image<'a>,
+    shared_device: &'a Device<'a>,
     native_view: ash::vk::ImageView,
 }
 
-impl<'a> ImageViewShared<'a> {
-    pub fn new(shared_image: &'a ImageShared<'a>, info: &ImageViewInfo) -> Result<Self, Error> {
+impl<'a> ImageView<'a> {
+    pub fn new(shared_image: &'a Image<'a>, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_device = shared_image.device();
 
         let native_image = shared_image.native();
@@ -73,7 +73,7 @@ impl<'a> ImageViewShared<'a> {
         unsafe {
             let native_view = native_device.create_image_view(&create_image_view, None)?;
 
-            Ok(ImageViewShared {
+            Ok(ImageView {
                 shared_device,
                 shared_image,
                 native_view,
@@ -85,43 +85,22 @@ impl<'a> ImageViewShared<'a> {
         self.native_view
     }
 
-    pub(crate) fn image(&self) -> &ImageShared<'_> {
+    pub(crate) fn image(&self) -> &Image<'_> {
         &self.shared_image
+    }
+
+    pub(crate) fn native_image(&self) -> ash::vk::Image {
+        self.shared_image.native()
     }
 }
 
-impl<'a> Drop for ImageViewShared<'a> {
+impl<'a> Drop for ImageView<'a> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
 
         unsafe {
             native_device.destroy_image_view(self.native_view, None);
         }
-    }
-}
-
-/// View of an [`Image`](Image).
-pub struct ImageView<'a> {
-    shared_view: ImageViewShared<'a>,
-}
-
-impl<'a> ImageView<'a> {
-    pub fn new(image: &'a Image<'a>, info: &ImageViewInfo) -> Result<Self, Error> {
-        let shared_view = ImageViewShared::new(image.shared(), info)?;
-
-        Ok(Self { shared_view: shared_view })
-    }
-
-    pub(crate) fn shared(&self) -> &ImageViewShared<'_> {
-        &self.shared_view
-    }
-
-    pub(crate) fn native(&self) -> ash::vk::ImageView {
-        self.shared_view.native()
-    }
-
-    pub(crate) fn native_image(&self) -> ash::vk::Image {
-        self.shared_view.shared_image.native()
     }
 }
 

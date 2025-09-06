@@ -1,5 +1,5 @@
 use crate::allocation::{Allocation, MemoryTypeIndex};
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error;
 use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
@@ -31,8 +31,9 @@ impl VideoDecodeCapabilities {
     }
 }
 
-pub(crate) struct VideoSessionShared<'a> {
-    shared_device: &'a DeviceShared<'a>,
+/// Vulkan-internal state needed for video ops.
+pub struct VideoSession<'a> {
+    device: &'a Device<'a>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
     // native_video_instance_fns: KhrVideoQueueInstanceFn,
@@ -41,12 +42,11 @@ pub(crate) struct VideoSessionShared<'a> {
     decode_capabilities: VideoDecodeCapabilities,
 }
 
-impl<'a> VideoSessionShared<'a> {
+impl<'a> VideoSession<'a> {
     pub fn new(device: &'a Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared_device = device.shared();
-        let shared_instance = shared_device.instance();
+        let shared_instance = device.instance();
 
-        let native_device = shared_device.native();
+        let native_device = device.native();
         let native_instance = shared_instance.native();
         let native_entry = shared_instance.native_entry();
 
@@ -59,7 +59,7 @@ impl<'a> VideoSessionShared<'a> {
 
         let profiles = stream_inspector.profiles();
 
-        let queue_family_index = shared_device
+        let queue_family_index = device
             .physical_device()
             .queue_family_infos()
             .any_decode()
@@ -124,7 +124,7 @@ impl<'a> VideoSessionShared<'a> {
                 .push_next(&mut video_decode_capabilities)
                 .push_next(&mut video_decode_h264_capabilities);
 
-            (get_physical_device_video_capabilities)(shared_device.physical_device().native(), &video_profile, &mut video_capabilities)
+            (get_physical_device_video_capabilities)(device.physical_device().native(), &video_profile, &mut video_capabilities)
                 .result()?;
 
             let array = &[video_profile];
@@ -138,7 +138,7 @@ impl<'a> VideoSessionShared<'a> {
             let mut num_video_format_properties = 0;
 
             (get_physical_device_video_format_properties_khr)(
-                shared_device.physical_device().native(),
+                device.physical_device().native(),
                 &video_format_info,
                 &mut num_video_format_properties,
                 null_mut(),
@@ -148,7 +148,7 @@ impl<'a> VideoSessionShared<'a> {
             let mut video_format_properties = vec![VideoFormatPropertiesKHR::default(); num_video_format_properties as usize];
 
             (get_physical_device_video_format_properties_khr)(
-                shared_device.physical_device().native(),
+                device.physical_device().native(),
                 &video_format_info,
                 &mut num_video_format_properties,
                 video_format_properties.as_mut_ptr(),
@@ -194,7 +194,7 @@ impl<'a> VideoSessionShared<'a> {
             bind_video_session_memory(native_device.handle(), native_session, bindings.len() as u32, bindings.as_ptr()).result()?;
 
             Ok(Self {
-                shared_device,
+                device,
                 native_queue_fns: queue_fns,
                 native_decode_queue_fns: decode_queue_fns,
                 // native_video_instance_fns: video_instance_fn,
@@ -222,8 +222,8 @@ impl<'a> VideoSessionShared<'a> {
     //     self.native_video_instance_fns.clone()
     // }
 
-    pub(crate) fn device(&self) -> &DeviceShared<'_> {
-        &self.shared_device
+    pub(crate) fn device(&self) -> &Device<'_> {
+        &self.device
     }
 
     pub(crate) fn decode_capabilities(&self) -> &VideoDecodeCapabilities {
@@ -231,31 +231,14 @@ impl<'a> VideoSessionShared<'a> {
     }
 }
 
-impl<'a> Drop for VideoSessionShared<'a> {
+impl<'a> Drop for VideoSession<'a> {
     fn drop(&mut self) {
-        let native_device = self.shared_device.native();
+        let native_device = self.device.native();
         let destroy_video_session_khr = self.native_queue_fns.destroy_video_session_khr;
 
         unsafe {
             destroy_video_session_khr(native_device.handle(), self.native_session, null());
         }
-    }
-}
-
-/// Vulkan-internal state needed for video ops.
-pub struct VideoSession<'a> {
-    shared: VideoSessionShared<'a>,
-}
-
-impl<'a> VideoSession<'a> {
-    pub fn new(device: &'a Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared = VideoSessionShared::new(device, stream_inspector)?;
-
-        Ok(Self { shared })
-    }
-
-    pub(crate) fn shared(&self) -> &VideoSessionShared<'_> {
-        &self.shared
     }
 }
 

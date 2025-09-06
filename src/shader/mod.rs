@@ -10,6 +10,4 @@ pub use parameters::Parameters;
 pub use pipeline::Pipeline;
 pub use shader::Shader;
 
-pub(crate) use parameters::{ParameterType, ParametersShared, ShaderParameter, ShaderParameterSet};
-pub(crate) use pipeline::PipelineShared;
-pub(crate) use shader::ShaderShared;
+pub(crate) use parameters::{ParameterType, ShaderParameter, ShaderParameterSet};

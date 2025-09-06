@@ -1,7 +1,7 @@
-use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
+use crate::allocation::{Allocation, MemoryTypeIndex};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error;
 use crate::error::{Error, Variant};
 use crate::video::h264::H264StreamInspector;
@@ -96,16 +96,17 @@ impl ImageInfo {
     }
 }
 
-pub(crate) struct ImageShared<'a> {
-    shared_device: &'a DeviceShared<'a>,
-    shared_allocation: Option<&'a AllocationShared<'a>>,
+/// A often 2D image, usually stored on the GPU.
+pub struct Image<'a> {
+    device: &'a Device<'a>,
+    allocation: Option<&'a Allocation<'a>>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
-impl<'a> ImageShared<'a> {
-    fn new(shared_device: &'a DeviceShared<'a>, info: &ImageInfo) -> Result<Self, Error> {
-        let native_device = shared_device.native();
+impl<'a> Image<'a> {
+    pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
+        let native_device = device.native();
 
         let create_image = ImageCreateInfo::default()
             .format(info.format) // we got this from the videosession struct which listed this as teh format.
@@ -123,20 +124,16 @@ impl<'a> ImageShared<'a> {
             let native_image = native_device.create_image(&create_image, None)?;
 
             Ok(Self {
-                shared_device,
-                shared_allocation: None,
+                device,
+                allocation: None,
                 native_image,
                 info: info.clone(),
             })
         }
     }
 
-    fn new_video_target(
-        shared_device: &'a DeviceShared<'a>,
-        info: &ImageInfo,
-        stream_inspector: &H264StreamInspector,
-    ) -> Result<Self, Error> {
-        let native_device = shared_device.native();
+    pub fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+        let native_device = device.native();
 
         unsafe {
             let mut profiles = stream_inspector.profiles();
@@ -157,34 +154,35 @@ impl<'a> ImageShared<'a> {
             let native_image = native_device.create_image(&create_image, None)?;
 
             Ok(Self {
-                shared_device,
-                shared_allocation: None,
+                device,
+                allocation: None,
                 native_image,
                 info: info.clone(),
             })
         }
     }
 
-    pub fn bind(&mut self, shared_allocation: &'a AllocationShared<'a>) -> Result<(), Error> {
-        let native_device = self.shared_device.native();
+    #[must_use]
+    pub fn bind(mut self, allocation: &'a Allocation<'a>) -> Result<Image<'a>, Error> {
+        let native_device = self.device.native();
         let native_image = self.native_image;
-        let native_allocation = shared_allocation.native();
+        let native_allocation = allocation.native();
 
-        if self.shared_allocation.is_some() {
+        if self.allocation.is_some() {
             return Err(error!(Variant::ImageAlreadyBound));
         }
 
         unsafe {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
 
-            self.shared_allocation = Some(shared_allocation);
+            self.allocation = Some(allocation);
 
-            Ok(())
+            Ok(self)
         }
     }
 
-    pub(crate) fn memory_requirement(&self) -> MemoryRequirements {
-        let native_device = self.shared_device.native();
+    pub fn memory_requirement(&self) -> MemoryRequirements {
+        let native_device = self.device.native();
 
         unsafe {
             let requirements = native_device.get_image_memory_requirements(self.native_image);
@@ -201,8 +199,8 @@ impl<'a> ImageShared<'a> {
         self.native_image
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared<'_> {
-        &self.shared_device
+    pub(crate) fn device(&self) -> &Device<'_> {
+        &self.device
     }
 
     pub(crate) fn info(&self) -> ImageInfo {
@@ -210,59 +208,13 @@ impl<'a> ImageShared<'a> {
     }
 }
 
-impl<'a> Drop for ImageShared<'a> {
+impl<'a> Drop for Image<'a> {
     fn drop(&mut self) {
-        let native_device = self.shared_device.native();
+        let native_device = self.device.native();
 
         unsafe {
             native_device.destroy_image(self.native_image, None);
         }
-    }
-}
-
-/// A often 2D image, usually stored on the GPU.
-pub struct Image<'a> {
-    shared: ImageShared<'a>,
-}
-
-impl<'a> Image<'a> {
-    pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
-        let shared_device = ImageShared::new(device.shared(), info)?;
-
-        Ok(Self { shared: shared_device })
-    }
-
-    pub fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
-
-        Ok(Self { shared: shared_device })
-    }
-
-    pub fn bind(mut self, allocation: &'a Allocation<'a>) -> Result<Self, Error> {
-        self.shared.bind(allocation.shared())?;
-        Ok(self)
-    }
-
-    pub fn memory_requirement(&self) -> MemoryRequirements {
-        self.shared.memory_requirement()
-    }
-
-    pub(crate) fn shared(&self) -> &ImageShared<'_> {
-        &self.shared
-    }
-
-    #[allow(unused)]
-    pub(crate) fn native(&self) -> ash::vk::Image {
-        self.shared.native()
-    }
-
-    #[allow(unused)]
-    pub(crate) fn device(&self) -> &DeviceShared<'_> {
-        &self.shared.shared_device
-    }
-
-    pub fn info(&self) -> ImageInfo {
-        self.shared.info()
     }
 }
 
