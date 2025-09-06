@@ -19,7 +19,7 @@ pub struct Compute<'a, T> {
 }
 
 impl<'a, T: ShaderParameterSet> Compute<'a, T> {
-    #[allow(unused)]
+    #[expect(unused)]
     fn new(pipeline: &'a Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let parameters = pipeline.parameters();
         let native_device = pipeline.device().native();
@@ -212,7 +212,7 @@ mod test {
 
     #[test]
     #[cfg(not(miri))]
-    #[allow(clippy::erasing_op)]
+    #[expect(clippy::erasing_op)]
     fn compute() -> Result<(), Error> {
         const BLOCK_SIZE: u64 = 1024;
 

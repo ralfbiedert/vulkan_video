@@ -8,7 +8,7 @@ use ash::vk::{
     ComputePipelineCreateInfo, PipelineCache, PipelineLayout, PipelineLayoutCreateInfo, PipelineShaderStageCreateInfo, ShaderStageFlags,
 };
 
-#[allow(unused)]
+#[expect(unused)]
 pub struct Pipeline<'a, T> {
     shared_device: &'a Device<'a>,
     shared_shader: &'a Shader<'a, T>,

@@ -5,7 +5,7 @@ use crate::physicaldevice::PhysicalDevice;
 use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
 
 /// Logical Vulkan device linked to some [`PhysicalDevice`](PhysicalDevice).
-#[allow(unused)]
+#[expect(unused)]
 pub struct Device<'a> {
     native_device: ash::Device,
     physical_device: &'a PhysicalDevice<'a>,
@@ -64,7 +64,7 @@ impl<'a> Device<'a> {
         Self::new_with_families(physical_device, &infos)
     }
 
-    #[allow(unused)]
+    #[expect(unused)]
     pub(crate) fn physical_device(&self) -> &PhysicalDevice<'_> {
         &self.physical_device
     }

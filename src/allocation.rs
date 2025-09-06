@@ -61,7 +61,7 @@ impl<'a> Allocation<'a> {
         }
     }
 
-    #[allow(unused)]
+    #[expect(unused)]
     pub(crate) fn instance(&self) -> &Instance {
         &self.instance
     }
