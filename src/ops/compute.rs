@@ -21,7 +21,7 @@ pub struct Compute<T> {
 }
 
 impl<T: ShaderParameterSet> Compute<T> {
-    #[allow(unused)]
+    #[expect(unused)]
     fn new(pipeline: &Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let shared_pipeline = pipeline.shared();
         let shared_parameters = shared_pipeline.parameters();
@@ -215,7 +215,7 @@ mod test {
 
     #[test]
     #[cfg(not(miri))]
-    #[allow(clippy::erasing_op)]
+    #[expect(clippy::erasing_op)]
     fn compute() -> Result<(), Error> {
         const BLOCK_SIZE: u64 = 1024;
 
