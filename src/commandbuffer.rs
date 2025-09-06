@@ -3,7 +3,6 @@ use crate::error;
 use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
 
-#[expect(unused)]
 pub(crate) struct CommandBufferShared<'a> {
     device: &'a Device<'a>,
     native_command_pool: ash::vk::CommandPool,
@@ -56,7 +55,6 @@ impl<'a> Drop for CommandBufferShared<'a> {
 }
 
 /// Stores commands related to a specific queue family.
-#[expect(unused)]
 pub struct CommandBuffer<'a> {
     shared: CommandBufferShared<'a>,
 }
@@ -68,7 +66,6 @@ impl<'a> CommandBuffer<'a> {
         Ok(Self { shared })
     }
 
-    #[expect(unused)]
     pub(crate) fn native(&self) -> ash::vk::CommandBuffer {
         self.shared.native()
     }

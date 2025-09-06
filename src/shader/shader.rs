@@ -6,7 +6,6 @@ use ash::vk::{ShaderModule, ShaderModuleCreateInfo};
 use std::ffi::{CStr, CString};
 
 /// Some GPU program, mostly for postprocessing video frames.
-#[expect(unused)]
 pub struct Shader<'a, T> {
     shared_device: &'a Device<'a>,
     shared_parameters: &'a Parameters<'a, T>,

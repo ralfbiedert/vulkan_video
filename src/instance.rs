@@ -63,7 +63,6 @@ impl Default for InstanceInfo {
 }
 
 /// The Vulkan driver instance, **start here**.
-#[expect(unused)]
 pub struct Instance {
     instance: ash::Instance,
     entry: ash::Entry,
