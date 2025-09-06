@@ -153,7 +153,7 @@ impl<'a> PhysicalDevice<'a> {
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> &PhysicalDeviceShared {
+    pub(crate) fn shared(&self) -> &PhysicalDeviceShared<'_> {
         &self.shared
     }
 

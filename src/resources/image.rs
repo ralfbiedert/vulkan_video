@@ -201,7 +201,7 @@ impl<'a> ImageShared<'a> {
         self.native_image
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared {
+    pub(crate) fn device(&self) -> &DeviceShared<'_> {
         &self.shared_device
     }
 
@@ -247,7 +247,7 @@ impl<'a> Image<'a> {
         self.shared.memory_requirement()
     }
 
-    pub(crate) fn shared(&self) -> &ImageShared {
+    pub(crate) fn shared(&self) -> &ImageShared<'_> {
         &self.shared
     }
 
@@ -257,7 +257,7 @@ impl<'a> Image<'a> {
     }
 
     #[allow(unused)]
-    pub(crate) fn device(&self) -> &DeviceShared {
+    pub(crate) fn device(&self) -> &DeviceShared<'_> {
         &self.shared.shared_device
     }
 

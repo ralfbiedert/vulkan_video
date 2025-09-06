@@ -64,7 +64,7 @@ impl<'a> DeviceShared<'a> {
     }
 
     #[allow(unused)]
-    pub(crate) fn physical_device(&self) -> &PhysicalDeviceShared {
+    pub(crate) fn physical_device(&self) -> &PhysicalDeviceShared<'_> {
         &self.shared_physical_device
     }
 
@@ -103,7 +103,7 @@ impl<'a> Device<'a> {
         Ok(Self { shared: device_shared })
     }
 
-    pub(crate) fn shared(&self) -> &DeviceShared {
+    pub(crate) fn shared(&self) -> &DeviceShared<'_> {
         &self.shared
     }
 }
