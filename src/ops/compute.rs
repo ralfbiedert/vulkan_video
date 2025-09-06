@@ -206,7 +206,7 @@ mod test {
     use crate::ops::AddToCommandBuffer;
     use crate::physicaldevice::PhysicalDevice;
     use crate::queue::Queue;
-    use crate::resources::{Buffer, BufferInfo, Image, ImageInfo, ImageView, ImageViewInfo};
+    use crate::resources::{Buffer, BufferInfo, ImageInfo, ImageView, ImageViewInfo, UnboundImage};
     use crate::shader::{Parameters, Pipeline, Shader};
 
     #[test]
@@ -277,7 +277,7 @@ mod test {
             .tiling(ImageTiling::OPTIMAL)
             .layout(ImageLayout::UNDEFINED)
             .extent(Extent3D::default().width(512).height(512).depth(1));
-        let image = Image::new(&device, &image_info)?;
+        let image = UnboundImage::new(&device, &image_info)?;
 
         let heap_image = image.memory_requirement().any_heap();
         let heap_host_visible = physical_device

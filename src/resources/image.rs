@@ -2,8 +2,7 @@ use crate::allocation::{Allocation, MemoryTypeIndex};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
 use crate::device::Device;
-use crate::error;
-use crate::error::{Error, Variant};
+use crate::error::Error;
 use crate::video::h264::H264StreamInspector;
 
 pub struct MemoryRequirements {
@@ -96,15 +95,14 @@ impl ImageInfo {
     }
 }
 
-/// A often 2D image, usually stored on the GPU.
-pub struct Image<'a> {
+/// An `Image` that has yet to be bound.  Call .bind() to construct an `Image`.
+pub struct UnboundImage<'a> {
     device: &'a Device<'a>,
-    allocation: Option<&'a Allocation<'a>>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
-impl<'a> Image<'a> {
+impl<'a> UnboundImage<'a> {
     pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = device.native();
 
@@ -125,7 +123,6 @@ impl<'a> Image<'a> {
 
             Ok(Self {
                 device,
-                allocation: None,
                 native_image,
                 info: info.clone(),
             })
@@ -155,7 +152,6 @@ impl<'a> Image<'a> {
 
             Ok(Self {
                 device,
-                allocation: None,
                 native_image,
                 info: info.clone(),
             })
@@ -163,22 +159,16 @@ impl<'a> Image<'a> {
     }
 
     #[must_use]
-    pub fn bind(mut self, allocation: &'a Allocation<'a>) -> Result<Image<'a>, Error> {
+    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a>, Error> {
         let native_device = self.device.native();
         let native_image = self.native_image;
         let native_allocation = allocation.native();
 
-        if self.allocation.is_some() {
-            return Err(error!(Variant::ImageAlreadyBound));
-        }
-
         unsafe {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
-
-            self.allocation = Some(allocation);
-
-            Ok(self)
         }
+
+        Ok(Image { image: self, allocation })
     }
 
     pub fn memory_requirement(&self) -> MemoryRequirements {
@@ -194,26 +184,34 @@ impl<'a> Image<'a> {
             }
         }
     }
+}
 
+/// A often 2D image, usually stored on the GPU.
+pub struct Image<'a> {
+    image: UnboundImage<'a>,
+    allocation: &'a Allocation<'a>,
+}
+
+impl<'a> Image<'a> {
     pub(crate) fn native(&self) -> ash::vk::Image {
-        self.native_image
+        self.image.native_image
     }
 
     pub(crate) fn device(&self) -> &Device<'_> {
-        &self.device
+        &self.image.device
     }
 
     pub(crate) fn info(&self) -> ImageInfo {
-        self.info.clone()
+        self.image.info.clone()
     }
 }
 
 impl<'a> Drop for Image<'a> {
     fn drop(&mut self) {
-        let native_device = self.device.native();
+        let native_device = self.image.device.native();
 
         unsafe {
-            native_device.destroy_image(self.native_image, None);
+            native_device.destroy_image(self.image.native_image, None);
         }
     }
 }
@@ -227,7 +225,7 @@ mod test {
     use crate::error::Error;
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
-    use crate::resources::{Image, ImageInfo};
+    use crate::resources::{ImageInfo, UnboundImage};
 
     #[test]
     #[cfg(not(miri))]
@@ -245,7 +243,7 @@ mod test {
             .image_type(ImageType::TYPE_2D)
             .tiling(ImageTiling::OPTIMAL)
             .extent(Extent3D::default().width(512).height(512).depth(1));
-        let image = Image::new(&device, &info)?;
+        let image = UnboundImage::new(&device, &info)?;
         let heap_index = image.memory_requirement().any_heap();
         let allocation = Allocation::new(&device, 1024 * 1024, heap_index)?;
 

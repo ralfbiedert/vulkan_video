@@ -5,5 +5,5 @@ mod image;
 mod imageview;
 
 pub use buffer::{Buffer, BufferInfo};
-pub use image::{Image, ImageInfo};
+pub use image::{Image, ImageInfo, UnboundImage};
 pub use imageview::{ImageView, ImageViewInfo};
