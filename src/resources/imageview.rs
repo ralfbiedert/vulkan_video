@@ -2,7 +2,7 @@ use ash::vk::{Format, ImageAspectFlags, ImageSubresourceRange, ImageViewCreateIn
 
 use crate::device::Device;
 use crate::error::Error;
-use crate::resources::Image;
+use crate::resources::{Bound, Image};
 
 /// Specifies how to crate an  [`ImageView`](ImageView).
 #[derive(Clone, Debug, Default)]
@@ -47,13 +47,13 @@ impl ImageViewInfo {
 
 /// View of an [`Image`](Image).
 pub struct ImageView<'a> {
-    shared_image: &'a Image<'a, true>,
+    shared_image: &'a Image<'a, Bound>,
     shared_device: &'a Device<'a>,
     native_view: ash::vk::ImageView,
 }
 
 impl<'a> ImageView<'a> {
-    pub fn new(shared_image: &'a Image<'a, true>, info: &ImageViewInfo) -> Result<Self, Error> {
+    pub fn new(shared_image: &'a Image<'a, Bound>, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_device = shared_image.device();
 
         let native_image = shared_image.native();
@@ -85,7 +85,7 @@ impl<'a> ImageView<'a> {
         self.native_view
     }
 
-    pub(crate) fn image(&self) -> &Image<'_, true> {
+    pub(crate) fn image(&self) -> &Image<'_, Bound> {
         &self.shared_image
     }
 

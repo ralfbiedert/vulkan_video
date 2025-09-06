@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::allocation::{Allocation, MemoryTypeIndex};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
@@ -95,17 +97,21 @@ impl ImageInfo {
     }
 }
 
+pub struct Bound;
+pub struct Unbound;
+
 /// A often 2D image, usually stored on the GPU.
-pub struct Image<'a, const BOUND: bool> {
+pub struct Image<'a, B> {
     device: &'a Device<'a>,
     native_image: ash::vk::Image,
     info: ImageInfo,
     // As long as this object inherits the lifetime 'a, that's good enough.
     // We never need to access the allocation information from this object.
     // allocation: &'a Allocation<'a>,
+    _phantom: PhantomData<B>,
 }
 
-impl<'a> Image<'a, false> {
+impl<'a> Image<'a, Unbound> {
     pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = device.native();
 
@@ -128,6 +134,7 @@ impl<'a> Image<'a, false> {
                 device,
                 native_image,
                 info: info.clone(),
+                _phantom: PhantomData,
             })
         }
     }
@@ -157,12 +164,13 @@ impl<'a> Image<'a, false> {
                 device,
                 native_image,
                 info: info.clone(),
+                _phantom: PhantomData,
             })
         }
     }
 
     #[must_use]
-    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a, true>, Error> {
+    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a, Bound>, Error> {
         let native_image = self.native_image;
         let native_device = self.device.native();
         let native_allocation = allocation.native();
@@ -190,7 +198,7 @@ impl<'a> Image<'a, false> {
     }
 }
 
-impl<'a> Image<'a, true> {
+impl<'a> Image<'a, Bound> {
     pub(crate) fn native(&self) -> ash::vk::Image {
         self.native_image
     }
@@ -204,7 +212,7 @@ impl<'a> Image<'a, true> {
     }
 }
 
-impl<'a, const BOUND: bool> Drop for Image<'a, BOUND> {
+impl<'a, B> Drop for Image<'a, B> {
     fn drop(&mut self) {
         let native_device = self.device.native();
 
