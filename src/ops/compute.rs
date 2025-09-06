@@ -19,7 +19,7 @@ pub struct Compute<'a, T> {
 }
 
 impl<'a, T: ShaderParameterSet> Compute<'a, T> {
-    fn new(pipeline: &'a Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
+    pub fn new(pipeline: &'a Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let parameters = pipeline.parameters();
         let native_device = pipeline.device().native();
         let native_descriptor_set_layout = parameters.native_layout();
