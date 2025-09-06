@@ -155,7 +155,7 @@ impl<'a, T: ShaderParameterSet> Parameters<'a, T> {
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> &ParametersShared<T> {
+    pub(crate) fn shared(&self) -> &ParametersShared<'_, T> {
         &self.shared
     }
 }

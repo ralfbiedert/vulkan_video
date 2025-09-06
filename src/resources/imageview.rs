@@ -85,7 +85,7 @@ impl<'a> ImageViewShared<'a> {
         self.native_view
     }
 
-    pub(crate) fn image(&self) -> &ImageShared {
+    pub(crate) fn image(&self) -> &ImageShared<'_> {
         &self.shared_image
     }
 }
@@ -112,7 +112,7 @@ impl<'a> ImageView<'a> {
         Ok(Self { shared_view: shared_view })
     }
 
-    pub(crate) fn shared(&self) -> &ImageViewShared {
+    pub(crate) fn shared(&self) -> &ImageViewShared<'_> {
         &self.shared_view
     }
 

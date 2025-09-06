@@ -71,7 +71,7 @@ impl<'a> CommandBuffer<'a> {
         self.shared.native()
     }
 
-    pub(crate) fn shared(&self) -> &CommandBufferShared {
+    pub(crate) fn shared(&self) -> &CommandBufferShared<'_> {
         &self.shared
     }
 }

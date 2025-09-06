@@ -200,7 +200,7 @@ impl<'a> BufferShared<'a> {
         self.device_buffer
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared {
+    pub(crate) fn device(&self) -> &DeviceShared<'_> {
         &self.shared_device
     }
 }
@@ -248,7 +248,7 @@ impl<'a> Buffer<'a> {
     }
 
     #[allow(unused)]
-    pub(crate) fn shared(&self) -> &BufferShared {
+    pub(crate) fn shared(&self) -> &BufferShared<'_> {
         &self.shared
     }
 

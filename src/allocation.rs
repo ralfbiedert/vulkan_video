@@ -65,7 +65,7 @@ impl<'a> AllocationShared<'a> {
         &self.shared_instance
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared {
+    pub(crate) fn device(&self) -> &DeviceShared<'_> {
         &self.shared_device
     }
 
@@ -102,7 +102,7 @@ impl<'a> Allocation<'a> {
         Ok(Self { shared: allocation_shared })
     }
 
-    pub(crate) fn shared(&self) -> &AllocationShared {
+    pub(crate) fn shared(&self) -> &AllocationShared<'_> {
         &self.shared
     }
 

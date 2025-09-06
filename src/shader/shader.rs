@@ -45,7 +45,7 @@ impl<'a, T: ShaderParameterSet> ShaderShared<'a, T> {
         &self.entry_point
     }
 
-    pub(crate) fn parameters(&self) -> &ParametersShared<T> {
+    pub(crate) fn parameters(&self) -> &ParametersShared<'_, T> {
         &self.shared_parameters
     }
 }
@@ -70,7 +70,7 @@ impl<'a, T: ShaderParameterSet> Shader<'a, T> {
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> &ShaderShared<T> {
+    pub(crate) fn shared(&self) -> &ShaderShared<'_, T> {
         &self.shared
     }
 
@@ -80,7 +80,7 @@ impl<'a, T: ShaderParameterSet> Shader<'a, T> {
     }
 
     #[allow(unused)]
-    pub(crate) fn parameters(&self) -> &ParametersShared<T> {
+    pub(crate) fn parameters(&self) -> &ParametersShared<'_, T> {
         self.shared().parameters()
     }
 }

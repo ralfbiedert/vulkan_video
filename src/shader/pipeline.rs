@@ -65,7 +65,7 @@ impl<'a, T: ShaderParameterSet> PipelineShared<'a, T> {
         }
     }
 
-    pub(crate) fn parameters(&self) -> &ParametersShared<T> {
+    pub(crate) fn parameters(&self) -> &ParametersShared<'_, T> {
         &self.shared_parameters
     }
 }
@@ -79,7 +79,7 @@ impl<'a, T> PipelineShared<'a, T> {
         self.native_layout
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared {
+    pub(crate) fn device(&self) -> &DeviceShared<'_> {
         &self.shared_device
     }
 }
@@ -109,7 +109,7 @@ impl<'a, T: ShaderParameterSet> Pipeline<'a, T> {
     }
 
     #[allow(unused)]
-    pub(crate) fn shared(&self) -> &PipelineShared<T> {
+    pub(crate) fn shared(&self) -> &PipelineShared<'_, T> {
         &self.shared
     }
 
