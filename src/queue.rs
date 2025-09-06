@@ -23,7 +23,7 @@ impl<'a> CommandBuilder<'a> {
 }
 
 struct QueueShared<'a> {
-	shared_device: &'a DeviceShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     native_queue: ash::vk::Queue,
     queue_family_index: u32,
 }

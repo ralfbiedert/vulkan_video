@@ -5,13 +5,13 @@ use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFl
 
 #[allow(unused)]
 pub(crate) struct CommandBufferShared<'a> {
-	shared_device: &'a DeviceShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     native_command_pool: ash::vk::CommandPool,
     native_command_buffer: ash::vk::CommandBuffer,
 }
 
 impl<'a> CommandBufferShared<'a> {
-	pub fn new(shared_device: &'a DeviceShared<'a>, queue_family_index: u32) -> Result<Self, Error> {
+    pub fn new(shared_device: &'a DeviceShared<'a>, queue_family_index: u32) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let command_pool_create_info = CommandPoolCreateInfo::default()

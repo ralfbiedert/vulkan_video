@@ -32,7 +32,7 @@ impl VideoDecodeCapabilities {
 }
 
 pub(crate) struct VideoSessionShared<'a> {
-	shared_device: &'a DeviceShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
     // native_video_instance_fns: KhrVideoQueueInstanceFn,

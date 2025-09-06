@@ -9,15 +9,15 @@ use ash::vk::{
 };
 
 #[allow(unused)]
-pub(crate) struct PipelineShared<'a,T> {
+pub(crate) struct PipelineShared<'a, T> {
     shared_device: &'a DeviceShared<'a>,
-    shared_shader: &'a ShaderShared<'a,T>,
-    shared_parameters: &'a ParametersShared<'a,T>,
+    shared_shader: &'a ShaderShared<'a, T>,
+    shared_parameters: &'a ParametersShared<'a, T>,
     native_layout: PipelineLayout,
     native_pipeline: ash::vk::Pipeline,
 }
 
-impl<'a,T: ShaderParameterSet> PipelineShared<'a,T> {
+impl<'a, T: ShaderParameterSet> PipelineShared<'a, T> {
     pub(crate) fn new(shared_device: &'a DeviceShared<'a>, shared_shader: &'a ShaderShared<T>) -> Result<Self, Error> {
         let native_device = shared_device.native();
         let shared_parameters = shared_shader.parameters();
@@ -70,7 +70,7 @@ impl<'a,T: ShaderParameterSet> PipelineShared<'a,T> {
     }
 }
 
-impl<'a,T> PipelineShared<'a,T> {
+impl<'a, T> PipelineShared<'a, T> {
     pub(crate) fn native(&self) -> ash::vk::Pipeline {
         self.native_pipeline
     }
@@ -84,7 +84,7 @@ impl<'a,T> PipelineShared<'a,T> {
     }
 }
 
-impl<'a,T> Drop for PipelineShared<'a,T> {
+impl<'a, T> Drop for PipelineShared<'a, T> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
 
@@ -97,11 +97,11 @@ impl<'a,T> Drop for PipelineShared<'a,T> {
 
 /// Configuration how exactly a [Shader](Shader) should be invoked.
 #[allow(unused)]
-pub struct Pipeline<'a,T: ShaderParameterSet> {
-    shared: PipelineShared<'a,T>,
+pub struct Pipeline<'a, T: ShaderParameterSet> {
+    shared: PipelineShared<'a, T>,
 }
 
-impl<'a,T: ShaderParameterSet> Pipeline<'a,T> {
+impl<'a, T: ShaderParameterSet> Pipeline<'a, T> {
     pub fn new(device: &'a Device, shader: &'a Shader<T>) -> Result<Self, Error> {
         let shared = PipelineShared::new(device.shared(), shader.shared())?;
 

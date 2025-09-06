@@ -92,13 +92,13 @@ where
     }
 }
 
-pub(crate) struct ParametersShared<'a,T> {
-	shared_device: &'a DeviceShared<'a>,
+pub(crate) struct ParametersShared<'a, T> {
+    shared_device: &'a DeviceShared<'a>,
     descriptor_set_layout: DescriptorSetLayout,
     _phantom: PhantomData<T>,
 }
 
-impl<'a,T: ShaderParameterSet> ParametersShared<'a,T> {
+impl<'a, T: ShaderParameterSet> ParametersShared<'a, T> {
     pub fn new(shared_device: &'a DeviceShared<'a>) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
@@ -133,7 +133,7 @@ impl<'a,T: ShaderParameterSet> ParametersShared<'a,T> {
     }
 }
 
-impl<'a,T> Drop for ParametersShared<'a,T> {
+impl<'a, T> Drop for ParametersShared<'a, T> {
     fn drop(&mut self) {
         unsafe {
             self.shared_device
@@ -144,11 +144,11 @@ impl<'a,T> Drop for ParametersShared<'a,T> {
 }
 
 /// Holds parameter information for a [Shader](crate::shader::Shader).
-pub struct Parameters<'a,T: ShaderParameterSet> {
-    shared: ParametersShared<'a,T>,
+pub struct Parameters<'a, T: ShaderParameterSet> {
+    shared: ParametersShared<'a, T>,
 }
 
-impl<'a,T: ShaderParameterSet> Parameters<'a,T> {
+impl<'a, T: ShaderParameterSet> Parameters<'a, T> {
     pub fn new(device: &'a Device) -> Result<Self, Error> {
         let shared = ParametersShared::new(device.shared())?;
 

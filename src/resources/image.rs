@@ -97,14 +97,14 @@ impl ImageInfo {
 }
 
 pub(crate) struct ImageShared<'a> {
-	shared_device: &'a DeviceShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     shared_allocation: Option<&'a AllocationShared<'a>>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
 impl<'a> ImageShared<'a> {
-	fn new(shared_device: &'a DeviceShared<'a>, info: &ImageInfo) -> Result<Self, Error> {
+    fn new(shared_device: &'a DeviceShared<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let create_image = ImageCreateInfo::default()
@@ -131,7 +131,11 @@ impl<'a> ImageShared<'a> {
         }
     }
 
-    fn new_video_target(shared_device: &'a DeviceShared<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    fn new_video_target(
+        shared_device: &'a DeviceShared<'a>,
+        info: &ImageInfo,
+        stream_inspector: &H264StreamInspector,
+    ) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         unsafe {
@@ -173,7 +177,7 @@ impl<'a> ImageShared<'a> {
         unsafe {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
 
-            self.shared_allocation=Some(shared_allocation);
+            self.shared_allocation = Some(shared_allocation);
 
             Ok(())
         }
@@ -225,17 +229,13 @@ impl<'a> Image<'a> {
     pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let shared_device = ImageShared::new(device.shared(), info)?;
 
-        Ok(Self {
-            shared: shared_device,
-        })
+        Ok(Self { shared: shared_device })
     }
 
     pub fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
 
-        Ok(Self {
-            shared: shared_device,
-        })
+        Ok(Self { shared: shared_device })
     }
 
     pub fn bind(mut self, allocation: &'a Allocation<'a>) -> Result<Self, Error> {

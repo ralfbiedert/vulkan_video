@@ -6,8 +6,8 @@ use ash::vk::BufferCopy;
 
 /// Performs a buffer-to-buffer copy operation.
 pub struct CopyBuffer2Buffer<'a> {
-	source: &'a BufferShared<'a>,
-	destination: &'a BufferShared<'a>,
+    source: &'a BufferShared<'a>,
+    destination: &'a BufferShared<'a>,
     size: u64,
 }
 

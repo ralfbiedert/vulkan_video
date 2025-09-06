@@ -21,7 +21,7 @@ pub(crate) struct AllocationShared<'a> {
 }
 
 impl<'a> AllocationShared<'a> {
-	pub fn new(shared_device: &'a DeviceShared<'a>, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
+    pub fn new(shared_device: &'a DeviceShared<'a>, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let native_device = shared_device.native();
         let info = MemoryAllocateInfo::default().allocation_size(size).memory_type_index(type_index.0);
         let device_memory = unsafe { native_device.allocate_memory(&info, None)? };
@@ -93,17 +93,13 @@ impl<'a> Allocation<'a> {
     pub fn new(device: &'a Device, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let allocation_shared = AllocationShared::new(device.shared(), size, type_index)?;
 
-        Ok(Self {
-            shared: allocation_shared,
-        })
+        Ok(Self { shared: allocation_shared })
     }
 
     pub fn new_external(device: &'a Device, external: *mut c_void, size: u64) -> Result<Self, Error> {
         let allocation_shared = AllocationShared::new_external(device.shared(), external, size)?;
 
-        Ok(Self {
-            shared: allocation_shared,
-        })
+        Ok(Self { shared: allocation_shared })
     }
 
     pub(crate) fn shared(&self) -> &AllocationShared {

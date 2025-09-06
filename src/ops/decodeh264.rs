@@ -29,10 +29,10 @@ impl DecodeInfo {
 
 /// Decode a H.264 video frame.
 pub struct DecodeH264<'a> {
-	shared_parameters: &'a VideoSessionParametersShared<'a>,
-	shared_buffer: &'a BufferShared<'a>,
-	shared_image_view: &'a ImageViewShared<'a>,
-	shared_ref_view: &'a ImageViewShared<'a>,
+    shared_parameters: &'a VideoSessionParametersShared<'a>,
+    shared_buffer: &'a BufferShared<'a>,
+    shared_image_view: &'a ImageViewShared<'a>,
+    shared_ref_view: &'a ImageViewShared<'a>,
     decode_info: DecodeInfo,
 }
 
