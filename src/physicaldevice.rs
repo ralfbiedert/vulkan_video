@@ -97,15 +97,15 @@ impl HeapInfos {
     }
 }
 
-pub(crate) struct PhysicalDeviceShared {
+pub(crate) struct PhysicalDeviceShared<'a> {
     native_physical_device: ash::vk::PhysicalDevice,
-    shared_instance: InstanceShared,
+    shared_instance: &'a InstanceShared,
     queue_family_infos: QueueFamilyInfos,
     heap_infos: HeapInfos,
 }
 
-impl PhysicalDeviceShared {
-    pub fn new_any(shared_instance: InstanceShared) -> Result<Self, Error> {
+impl<'a> PhysicalDeviceShared<'a> {
+    pub fn new_any(shared_instance: &'a InstanceShared) -> Result<Self, Error> {
         let native_instance = shared_instance.native();
 
         unsafe {
@@ -128,8 +128,8 @@ impl PhysicalDeviceShared {
         self.native_physical_device
     }
 
-    pub(crate) fn instance(&self) -> InstanceShared {
-        self.shared_instance.clone()
+    pub(crate) fn instance(&self) -> &InstanceShared {
+        &self.shared_instance
     }
 
     pub fn queue_family_infos(&self) -> &QueueFamilyInfos {
@@ -142,19 +142,19 @@ impl PhysicalDeviceShared {
 }
 
 /// Some GPU in your system.
-pub struct PhysicalDevice {
-    shared: PhysicalDeviceShared,
+pub struct PhysicalDevice<'a> {
+    shared: PhysicalDeviceShared<'a>,
 }
 
-impl PhysicalDevice {
-    pub fn new_any(instance: &Instance) -> Result<Self, Error> {
+impl<'a> PhysicalDevice<'a> {
+    pub fn new_any(instance: &'a Instance) -> Result<Self, Error> {
         let shared = PhysicalDeviceShared::new_any(instance.shared())?;
 
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> PhysicalDeviceShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &PhysicalDeviceShared {
+        &self.shared
     }
 
     pub fn queue_family_infos(&self) -> &QueueFamilyInfos {

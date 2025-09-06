@@ -95,12 +95,12 @@ impl InstanceShared {
         }
     }
 
-    pub fn native(&self) -> ash::Instance {
-        self.instance.clone()
+    pub fn native(&self) -> &ash::Instance {
+        &self.instance
     }
 
-    pub fn native_entry(&self) -> ash::Entry {
-        self.entry.clone()
+    pub fn native_entry(&self) -> &ash::Entry {
+        &self.entry
     }
 }
 
@@ -124,8 +124,8 @@ impl Instance {
         })
     }
 
-    pub(crate) fn shared(&self) -> InstanceShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &InstanceShared {
+        &self.shared
     }
 }
 

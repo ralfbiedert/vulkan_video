@@ -5,14 +5,14 @@ use crate::resources::{Buffer, BufferShared, Image, ImageShared};
 use ash::vk::{BufferImageCopy, ImageAspectFlags, ImageLayout, ImageSubresourceLayers};
 
 /// Performs an image-to-buffer copy operation.
-pub struct CopyImage2Buffer {
-    image: ImageShared,
-    buffer: BufferShared,
+pub struct CopyImage2Buffer<'a> {
+	image: &'a ImageShared<'a>,
+	buffer: &'a BufferShared<'a>,
     aspect_mask: ImageAspectFlags,
 }
 
-impl CopyImage2Buffer {
-    pub fn new(image: &Image, buffer: &Buffer, aspect_mask: ImageAspectFlags) -> Self {
+impl<'a> CopyImage2Buffer<'a> {
+    pub fn new(image: &'a Image<'a>, buffer: &'a Buffer<'a>, aspect_mask: ImageAspectFlags) -> Self {
         Self {
             image: image.shared(),
             buffer: buffer.shared(),
@@ -21,7 +21,7 @@ impl CopyImage2Buffer {
     }
 }
 
-impl AddToCommandBuffer for CopyImage2Buffer {
+impl<'a> AddToCommandBuffer for CopyImage2Buffer<'a> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
         let native_device = self.image.device().native();
         let native_command_buffer = builder.native_command_buffer();

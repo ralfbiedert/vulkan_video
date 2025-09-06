@@ -96,15 +96,15 @@ impl ImageInfo {
     }
 }
 
-pub(crate) struct ImageShared {
-    shared_device: DeviceShared,
-    shared_allocation: Option<AllocationShared>,
+pub(crate) struct ImageShared<'a> {
+	shared_device: &'a DeviceShared<'a>,
+    shared_allocation: Option<&'a AllocationShared<'a>>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
-impl ImageShared {
-    fn new(shared_device: DeviceShared, info: &ImageInfo) -> Result<Self, Error> {
+impl<'a> ImageShared<'a> {
+	fn new(shared_device: &'a DeviceShared<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let create_image = ImageCreateInfo::default()
@@ -131,7 +131,7 @@ impl ImageShared {
         }
     }
 
-    fn new_video_target(shared_device: DeviceShared, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    fn new_video_target(shared_device: &'a DeviceShared<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         unsafe {
@@ -161,7 +161,7 @@ impl ImageShared {
         }
     }
 
-    pub fn bind(&mut self, shared_allocation: AllocationShared) -> Result<(), Error> {
+    pub fn bind(&mut self, shared_allocation: &'a AllocationShared<'a>) -> Result<(), Error> {
         let native_device = self.shared_device.native();
         let native_image = self.native_image;
         let native_allocation = shared_allocation.native();
@@ -197,8 +197,8 @@ impl ImageShared {
         self.native_image
     }
 
-    pub(crate) fn device(&self) -> DeviceShared {
-        self.shared_device.clone()
+    pub(crate) fn device(&self) -> &DeviceShared {
+        &self.shared_device
     }
 
     pub(crate) fn info(&self) -> ImageInfo {
@@ -206,7 +206,7 @@ impl ImageShared {
     }
 }
 
-impl Drop for ImageShared {
+impl<'a> Drop for ImageShared<'a> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
 
@@ -217,12 +217,12 @@ impl Drop for ImageShared {
 }
 
 /// A often 2D image, usually stored on the GPU.
-pub struct Image {
-    shared: ImageShared,
+pub struct Image<'a> {
+    shared: ImageShared<'a>,
 }
 
-impl Image {
-    pub fn new(device: &Device, info: &ImageInfo) -> Result<Self, Error> {
+impl<'a> Image<'a> {
+    pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let shared_device = ImageShared::new(device.shared(), info)?;
 
         Ok(Self {
@@ -230,7 +230,7 @@ impl Image {
         })
     }
 
-    pub fn new_video_target(device: &Device, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    pub fn new_video_target(device: &'a Device<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
 
         Ok(Self {
@@ -238,7 +238,7 @@ impl Image {
         })
     }
 
-    pub fn bind(mut self, allocation: &Allocation) -> Result<Self, Error> {
+    pub fn bind(mut self, allocation: &'a Allocation<'a>) -> Result<Self, Error> {
         self.shared.bind(allocation.shared())?;
         Ok(self)
     }
@@ -247,8 +247,8 @@ impl Image {
         self.shared.memory_requirement()
     }
 
-    pub(crate) fn shared(&self) -> ImageShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &ImageShared {
+        &self.shared
     }
 
     #[allow(unused)]
@@ -257,8 +257,8 @@ impl Image {
     }
 
     #[allow(unused)]
-    pub(crate) fn device(&self) -> DeviceShared {
-        self.shared.shared_device.clone()
+    pub(crate) fn device(&self) -> &DeviceShared {
+        &self.shared.shared_device
     }
 
     pub fn info(&self) -> ImageInfo {

@@ -22,7 +22,7 @@ pub trait ShaderParameter {
 
     fn descrtiptor_type() -> DescriptorType;
 }
-impl ShaderParameter for Buffer {
+impl<'a> ShaderParameter for Buffer<'a> {
     fn parameter_type(&self) -> ParameterType {
         ParameterType::Buffer {
             native: self.shared().native(),
@@ -35,7 +35,7 @@ impl ShaderParameter for Buffer {
     }
 }
 
-impl ShaderParameter for ImageView {
+impl<'a> ShaderParameter for ImageView<'a> {
     fn parameter_type(&self) -> ParameterType {
         let native_image = self.native_image();
         let native_view = self.native();
@@ -92,14 +92,14 @@ where
     }
 }
 
-pub(crate) struct ParametersShared<T> {
-    shared_device: DeviceShared,
+pub(crate) struct ParametersShared<'a,T> {
+	shared_device: &'a DeviceShared<'a>,
     descriptor_set_layout: DescriptorSetLayout,
     _phantom: PhantomData<T>,
 }
 
-impl<T: ShaderParameterSet> ParametersShared<T> {
-    pub fn new(shared_device: DeviceShared) -> Result<Self, Error> {
+impl<'a,T: ShaderParameterSet> ParametersShared<'a,T> {
+    pub fn new(shared_device: &'a DeviceShared<'a>) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let descriptor_types = T::descriptor_types();
@@ -133,7 +133,7 @@ impl<T: ShaderParameterSet> ParametersShared<T> {
     }
 }
 
-impl<T> Drop for ParametersShared<T> {
+impl<'a,T> Drop for ParametersShared<'a,T> {
     fn drop(&mut self) {
         unsafe {
             self.shared_device
@@ -144,19 +144,19 @@ impl<T> Drop for ParametersShared<T> {
 }
 
 /// Holds parameter information for a [Shader](crate::shader::Shader).
-pub struct Parameters<T: ShaderParameterSet> {
-    shared: ParametersShared<T>,
+pub struct Parameters<'a,T: ShaderParameterSet> {
+    shared: ParametersShared<'a,T>,
 }
 
-impl<T: ShaderParameterSet> Parameters<T> {
-    pub fn new(device: &Device) -> Result<Self, Error> {
+impl<'a,T: ShaderParameterSet> Parameters<'a,T> {
+    pub fn new(device: &'a Device) -> Result<Self, Error> {
         let shared = ParametersShared::new(device.shared())?;
 
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> ParametersShared<T> {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &ParametersShared<T> {
+        &self.shared
     }
 }
 

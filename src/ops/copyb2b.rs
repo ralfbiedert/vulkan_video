@@ -5,14 +5,14 @@ use crate::resources::{Buffer, BufferShared};
 use ash::vk::BufferCopy;
 
 /// Performs a buffer-to-buffer copy operation.
-pub struct CopyBuffer2Buffer {
-    source: BufferShared,
-    destination: BufferShared,
+pub struct CopyBuffer2Buffer<'a> {
+	source: &'a BufferShared<'a>,
+	destination: &'a BufferShared<'a>,
     size: u64,
 }
 
-impl CopyBuffer2Buffer {
-    pub fn new(source: &Buffer, destination: &Buffer, size: u64) -> Self {
+impl<'a> CopyBuffer2Buffer<'a> {
+    pub fn new(source: &'a Buffer<'a>, destination: &'a Buffer<'a>, size: u64) -> Self {
         Self {
             source: source.shared(),
             destination: destination.shared(),
@@ -21,7 +21,7 @@ impl CopyBuffer2Buffer {
     }
 }
 
-impl AddToCommandBuffer for CopyBuffer2Buffer {
+impl<'a> AddToCommandBuffer for CopyBuffer2Buffer<'a> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
         let native_device = self.source.device().native();
         let native_command_buffer = builder.native_command_buffer();
