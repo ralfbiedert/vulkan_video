@@ -1,7 +1,7 @@
 use crate::allocation::MemoryTypeIndex;
 use crate::error;
 use crate::error::{Error, Variant};
-use crate::instance::{Instance, InstanceShared};
+use crate::instance::Instance;
 use ash::vk::{MemoryPropertyFlags, PhysicalDeviceMemoryProperties, QueueFlags};
 
 /// Provides logical information about vulkan queue families.
@@ -97,16 +97,17 @@ impl HeapInfos {
     }
 }
 
-pub(crate) struct PhysicalDeviceShared<'a> {
+/// Some GPU in your system.
+pub struct PhysicalDevice<'a> {
     native_physical_device: ash::vk::PhysicalDevice,
-    shared_instance: &'a InstanceShared,
+    instance: &'a Instance,
     queue_family_infos: QueueFamilyInfos,
     heap_infos: HeapInfos,
 }
 
-impl<'a> PhysicalDeviceShared<'a> {
-    pub fn new_any(shared_instance: &'a InstanceShared) -> Result<Self, Error> {
-        let native_instance = shared_instance.native();
+impl<'a> PhysicalDevice<'a> {
+    pub fn new_any(instance: &'a Instance) -> Result<Self, Error> {
+        let native_instance = instance.native();
 
         unsafe {
             // SAFETY: Should be safe as native instance is valid.
@@ -117,7 +118,7 @@ impl<'a> PhysicalDeviceShared<'a> {
 
             Ok(Self {
                 native_physical_device,
-                shared_instance,
+                instance,
                 queue_family_infos,
                 heap_infos,
             })
@@ -128,8 +129,8 @@ impl<'a> PhysicalDeviceShared<'a> {
         self.native_physical_device
     }
 
-    pub(crate) fn instance(&self) -> &InstanceShared {
-        &self.shared_instance
+    pub(crate) fn instance(&self) -> &Instance {
+        &self.instance
     }
 
     pub fn queue_family_infos(&self) -> &QueueFamilyInfos {
@@ -138,30 +139,6 @@ impl<'a> PhysicalDeviceShared<'a> {
 
     pub fn heap_infos(&self) -> &HeapInfos {
         &self.heap_infos
-    }
-}
-
-/// Some GPU in your system.
-pub struct PhysicalDevice<'a> {
-    shared: PhysicalDeviceShared<'a>,
-}
-
-impl<'a> PhysicalDevice<'a> {
-    pub fn new_any(instance: &'a Instance) -> Result<Self, Error> {
-        let shared = PhysicalDeviceShared::new_any(instance.shared())?;
-
-        Ok(Self { shared })
-    }
-
-    pub(crate) fn shared(&self) -> &PhysicalDeviceShared<'_> {
-        &self.shared
-    }
-
-    pub fn queue_family_infos(&self) -> &QueueFamilyInfos {
-        self.shared.queue_family_infos()
-    }
-    pub fn heap_infos(&self) -> &HeapInfos {
-        self.shared.heap_infos()
     }
 }
 

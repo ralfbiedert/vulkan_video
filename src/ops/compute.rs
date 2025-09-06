@@ -7,11 +7,11 @@ use ash::vk::{
 use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
-use crate::shader::{ParameterType, Pipeline, PipelineShared, ShaderParameterSet};
+use crate::shader::{ParameterType, Pipeline, ShaderParameterSet};
 
 /// Run a compute shader.
 pub struct Compute<'a, T> {
-    shared_pipeline: &'a PipelineShared<'a, T>,
+    pipeline: &'a Pipeline<'a, T>,
     dispatch_groups: (u32, u32, u32),
     native_descriptor_pool: DescriptorPool,
     native_descriptor_sets: Vec<DescriptorSet>,
@@ -20,10 +20,9 @@ pub struct Compute<'a, T> {
 
 impl<'a, T: ShaderParameterSet> Compute<'a, T> {
     pub fn new(pipeline: &'a Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
-        let shared_pipeline = pipeline.shared();
-        let shared_parameters = shared_pipeline.parameters();
-        let native_device = shared_pipeline.device().native();
-        let native_descriptor_set_layout = shared_parameters.native_layout();
+        let parameters = pipeline.parameters();
+        let native_device = pipeline.device().native();
+        let native_descriptor_set_layout = parameters.native_layout();
         let native_descriptor_set_layouts = &[native_descriptor_set_layout];
 
         let descriptor_pool_storage = DescriptorPoolSize::default().descriptor_count(3).ty(DescriptorType::STORAGE_BUFFER);
@@ -42,7 +41,7 @@ impl<'a, T: ShaderParameterSet> Compute<'a, T> {
             let descriptor_sets = native_device.allocate_descriptor_sets(&descriptor_set_alloc_info)?;
 
             Ok(Self {
-                shared_pipeline: pipeline.shared(),
+                pipeline,
                 dispatch_groups,
                 native_descriptor_pool: descriptor_pool,
                 native_descriptor_sets: descriptor_sets,
@@ -55,7 +54,7 @@ impl<'a, T: ShaderParameterSet> Compute<'a, T> {
 impl<'a, T> Drop for Compute<'a, T> {
     fn drop(&mut self) {
         unsafe {
-            let native_device = self.shared_pipeline.device().native();
+            let native_device = self.pipeline.device().native();
 
             native_device.destroy_descriptor_pool(self.native_descriptor_pool, None);
         }
@@ -64,10 +63,10 @@ impl<'a, T> Drop for Compute<'a, T> {
 
 impl<'a, T: ShaderParameterSet> AddToCommandBuffer for Compute<'a, T> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
-        let native_device = self.shared_pipeline.device().native();
+        let native_device = self.pipeline.device().native();
         let native_command_buffer = builder.native_command_buffer();
-        let native_pipeline = self.shared_pipeline.native();
-        let native_layout = self.shared_pipeline.layout();
+        let native_pipeline = self.pipeline.native();
+        let native_layout = self.pipeline.layout();
 
         let mut acquire_image = Vec::new();
         let mut acquire_buffer = Vec::new();

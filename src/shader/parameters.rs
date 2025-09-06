@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use ash::vk::{DescriptorSetLayout, DescriptorSetLayoutBinding, DescriptorSetLayoutCreateInfo, DescriptorType, ShaderStageFlags};
 
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error::Error;
 use crate::resources::{Buffer, ImageView};
 
@@ -25,7 +25,7 @@ pub trait ShaderParameter {
 impl<'a> ShaderParameter for Buffer<'a> {
     fn parameter_type(&self) -> ParameterType {
         ParameterType::Buffer {
-            native: self.shared().native(),
+            native: self.native(),
             size: self.size(),
         }
     }
@@ -92,14 +92,15 @@ where
     }
 }
 
-pub(crate) struct ParametersShared<'a, T> {
-    shared_device: &'a DeviceShared<'a>,
+/// Holds parameter information for a [Shader](crate::shader::Shader).
+pub struct Parameters<'a, T> {
+    shared_device: &'a Device<'a>,
     descriptor_set_layout: DescriptorSetLayout,
     _phantom: PhantomData<T>,
 }
 
-impl<'a, T: ShaderParameterSet> ParametersShared<'a, T> {
-    pub fn new(shared_device: &'a DeviceShared<'a>) -> Result<Self, Error> {
+impl<'a, T: ShaderParameterSet> Parameters<'a, T> {
+    pub fn new(shared_device: &'a Device<'a>) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let descriptor_types = T::descriptor_types();
@@ -133,30 +134,13 @@ impl<'a, T: ShaderParameterSet> ParametersShared<'a, T> {
     }
 }
 
-impl<'a, T> Drop for ParametersShared<'a, T> {
+impl<'a, T> Drop for Parameters<'a, T> {
     fn drop(&mut self) {
         unsafe {
             self.shared_device
                 .native()
                 .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
         }
-    }
-}
-
-/// Holds parameter information for a [Shader](crate::shader::Shader).
-pub struct Parameters<'a, T: ShaderParameterSet> {
-    shared: ParametersShared<'a, T>,
-}
-
-impl<'a, T: ShaderParameterSet> Parameters<'a, T> {
-    pub fn new(device: &'a Device) -> Result<Self, Error> {
-        let shared = ParametersShared::new(device.shared())?;
-
-        Ok(Self { shared })
-    }
-
-    pub(crate) fn shared(&self) -> &ParametersShared<'_, T> {
-        &self.shared
     }
 }
 
@@ -167,7 +151,7 @@ mod test {
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
     use crate::resources::Buffer;
-    use crate::shader::parameters::Parameters;
+    use crate::shader::Parameters;
 
     #[test]
     #[cfg(not(miri))]

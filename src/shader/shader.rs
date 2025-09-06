@@ -1,23 +1,24 @@
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error::Error;
-use crate::shader::parameters::{Parameters, ParametersShared};
+use crate::shader::parameters::Parameters;
 use crate::shader::ShaderParameterSet;
 use ash::vk::{ShaderModule, ShaderModuleCreateInfo};
 use std::ffi::{CStr, CString};
 
-pub(crate) struct ShaderShared<'a, T> {
-    shared_device: &'a DeviceShared<'a>,
-    shared_parameters: &'a ParametersShared<'a, T>,
+/// Some GPU program, mostly for postprocessing video frames.
+pub struct Shader<'a, T> {
+    shared_device: &'a Device<'a>,
+    shared_parameters: &'a Parameters<'a, T>,
     shader_module: ShaderModule,
     entry_point: CString,
 }
 
-impl<'a, T: ShaderParameterSet> ShaderShared<'a, T> {
+impl<'a, T: ShaderParameterSet> Shader<'a, T> {
     pub fn new(
-        shared_device: &'a DeviceShared<'a>,
+        shared_device: &'a Device<'a>,
         spirv_code: &[u8],
         entry_point: &str,
-        shared_parameters: &'a ParametersShared<'a, T>,
+        shared_parameters: &'a Parameters<'a, T>,
     ) -> Result<Self, Error> {
         let entry_point = CString::new(entry_point)?;
 
@@ -45,43 +46,16 @@ impl<'a, T: ShaderParameterSet> ShaderShared<'a, T> {
         &self.entry_point
     }
 
-    pub(crate) fn parameters(&self) -> &ParametersShared<'_, T> {
+    pub(crate) fn parameters(&self) -> &Parameters<'_, T> {
         &self.shared_parameters
     }
 }
 
-impl<'a, T> Drop for ShaderShared<'a, T> {
+impl<'a, T> Drop for Shader<'a, T> {
     fn drop(&mut self) {
         unsafe {
             self.shared_device.native().destroy_shader_module(self.shader_module, None);
         }
-    }
-}
-
-/// Some GPU program, mostly for postprocessing video frames.
-pub struct Shader<'a, T: ShaderParameterSet> {
-    shared: ShaderShared<'a, T>,
-}
-
-impl<'a, T: ShaderParameterSet> Shader<'a, T> {
-    pub fn new(device: &'a Device, spirv_code: &[u8], entry_point: &str, parameters: &'a Parameters<T>) -> Result<Self, Error> {
-        let shared = ShaderShared::<T>::new(device.shared(), spirv_code, entry_point, parameters.shared())?;
-
-        Ok(Self { shared })
-    }
-
-    pub(crate) fn shared(&self) -> &ShaderShared<'_, T> {
-        &self.shared
-    }
-
-    #[allow(unused)]
-    pub fn entry_point(&self) -> &CStr {
-        self.shared.entry_point()
-    }
-
-    #[allow(unused)]
-    pub(crate) fn parameters(&self) -> &ParametersShared<'_, T> {
-        self.shared().parameters()
     }
 }
 

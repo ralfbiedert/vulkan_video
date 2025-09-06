@@ -62,12 +62,13 @@ impl Default for InstanceInfo {
     }
 }
 
-pub(crate) struct InstanceShared {
+/// The Vulkan driver instance, **start here**.
+pub struct Instance {
     instance: ash::Instance,
     entry: ash::Entry,
 }
 
-impl InstanceShared {
+impl Instance {
     pub fn new(info: &InstanceInfo) -> Result<Self, Error> {
         let vulkan_version = vk::make_api_version(0, 1, 3, 0);
         let debug_layers = [c"VK_LAYER_KHRONOS_validation".as_ptr().cast()];
@@ -103,7 +104,7 @@ impl InstanceShared {
     }
 }
 
-impl Drop for InstanceShared {
+impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
             self.instance.destroy_instance(None);
@@ -111,37 +112,10 @@ impl Drop for InstanceShared {
     }
 }
 
-/// The Vulkan driver instance, **start here**.
-pub struct Instance {
-    shared: InstanceShared,
-}
-
-impl Instance {
-    pub fn new(info: &InstanceInfo) -> Result<Self, Error> {
-        Ok(Self {
-            shared: InstanceShared::new(info)?,
-        })
-    }
-
-    pub(crate) fn shared(&self) -> &InstanceShared {
-        &self.shared
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::error::Error;
-    use crate::instance::{Instance, InstanceInfo, InstanceShared};
-
-    #[test]
-    #[cfg(not(miri))]
-    fn create_shared_instance() -> Result<(), Error> {
-        let instance_info = InstanceInfo::new().app_name("MyApp")?.app_version(100).validation(true);
-
-        _ = InstanceShared::new(&instance_info)?;
-
-        Ok(())
-    }
+    use crate::instance::{Instance, InstanceInfo};
 
     #[test]
     #[cfg(not(miri))]

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use ash::vk::{CommandBufferBeginInfo, CommandBufferResetFlags, FenceCreateFlags, FenceCreateInfo, SubmitInfo};
 
 use crate::commandbuffer::CommandBuffer;
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error::Error;
 
 pub struct CommandBuilder<'a> {
@@ -23,20 +23,20 @@ impl<'a> CommandBuilder<'a> {
 }
 
 struct QueueShared<'a> {
-    shared_device: &'a DeviceShared<'a>,
+    device: &'a Device<'a>,
     native_queue: ash::vk::Queue,
     queue_family_index: u32,
 }
 
 impl<'a> QueueShared<'a> {
-    fn new(shared_device: &'a DeviceShared<'a>, queue_family_index: u32, index: u32) -> Result<Self, Error> {
-        let native_device = shared_device.native();
+    fn new(device: &'a Device<'a>, queue_family_index: u32, index: u32) -> Result<Self, Error> {
+        let native_device = device.native();
 
         unsafe {
             let native_queue = native_device.get_device_queue(queue_family_index, index);
 
             Ok(Self {
-                shared_device,
+                device,
                 native_queue,
                 queue_family_index,
             })
@@ -48,7 +48,7 @@ impl<'a> QueueShared<'a> {
         command_buffer: &CommandBuffer,
         f: impl FnOnce(&mut CommandBuilder) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        let native_device = self.shared_device.native();
+        let native_device = self.device.native();
         let native_command_buffer = command_buffer.native();
         let native_queue = self.native_queue;
 
@@ -88,7 +88,7 @@ pub struct Queue<'a> {
 
 impl<'a> Queue<'a> {
     pub fn new(device: &'a Device, family: u32, index: u32) -> Result<Self, Error> {
-        let shared = QueueShared::new(device.shared(), family, index)?;
+        let shared = QueueShared::new(device, family, index)?;
 
         Ok(Self { shared })
     }

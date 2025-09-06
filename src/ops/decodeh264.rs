@@ -1,8 +1,8 @@
 use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
-use crate::resources::{Buffer, BufferShared, ImageView, ImageViewShared};
-use crate::video::{VideoSessionParameters, VideoSessionParametersShared};
+use crate::resources::{Buffer, ImageView};
+use crate::video::VideoSessionParameters;
 use ash::vk::native::{
     StdVideoDecodeH264PictureInfo, StdVideoDecodeH264PictureInfoFlags, StdVideoDecodeH264ReferenceInfo,
     StdVideoDecodeH264ReferenceInfoFlags,
@@ -29,26 +29,26 @@ impl DecodeInfo {
 
 /// Decode a H.264 video frame.
 pub struct DecodeH264<'a> {
-    shared_parameters: &'a VideoSessionParametersShared<'a>,
-    shared_buffer: &'a BufferShared<'a>,
-    shared_image_view: &'a ImageViewShared<'a>,
-    shared_ref_view: &'a ImageViewShared<'a>,
+    buffer: &'a Buffer<'a>,
+    video_session_parameters: &'a VideoSessionParameters<'a>,
+    target_view: &'a ImageView<'a>,
+    ref_view: &'a ImageView<'a>,
     decode_info: DecodeInfo,
 }
 
 impl<'a> DecodeH264<'a> {
     pub fn new(
-        buffer: &'a Buffer,
-        video_session_parameters: &'a VideoSessionParameters,
-        target_view: &'a ImageView,
-        ref_view: &'a ImageView,
+        buffer: &'a Buffer<'a>,
+        video_session_parameters: &'a VideoSessionParameters<'a>,
+        target_view: &'a ImageView<'a>,
+        ref_view: &'a ImageView<'a>,
         decode_info: &DecodeInfo,
     ) -> Self {
         Self {
-            shared_parameters: video_session_parameters.shared(),
-            shared_buffer: buffer.shared(),
-            shared_image_view: target_view.shared(),
-            shared_ref_view: ref_view.shared(),
+            buffer,
+            video_session_parameters,
+            target_view,
+            ref_view,
             decode_info: *decode_info,
         }
     }
@@ -56,21 +56,21 @@ impl<'a> DecodeH264<'a> {
 
 impl<'a> AddToCommandBuffer for DecodeH264<'a> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
-        let shared_video_session = self.shared_parameters.video_session();
+        let video_session = self.video_session_parameters.video_session();
 
-        let native_buffer_h264 = self.shared_buffer.native();
-        let native_device = shared_video_session.device().native();
-        let native_queue_fns = shared_video_session.queue_fns();
-        let native_decode_fns = shared_video_session.decode_fns();
+        let native_buffer_h264 = self.buffer.native();
+        let native_device = video_session.device().native();
+        let native_queue_fns = video_session.queue_fns();
+        let native_decode_fns = video_session.decode_fns();
         let native_command_buffer = builder.native_command_buffer();
-        let native_view_dst = self.shared_image_view.native();
-        let native_view_ref = self.shared_ref_view.native();
-        let native_image_dst = self.shared_image_view.image().native();
-        let native_image_ref = self.shared_ref_view.image().native();
-        let native_video_session = shared_video_session.native();
-        let native_video_session_parameters = self.shared_parameters.native();
+        let native_view_dst = self.target_view.native();
+        let native_view_ref = self.ref_view.native();
+        let native_image_dst = self.target_view.image().native();
+        let native_image_ref = self.ref_view.image().native();
+        let native_video_session = video_session.native();
+        let native_video_session_parameters = self.video_session_parameters.native();
 
-        let image_info = self.shared_image_view.image().info();
+        let image_info = self.target_view.image().info();
         let image_extent = image_info.get_extent();
         let extent = Extent2D::default().width(image_extent.width).height(image_extent.height);
 
@@ -99,7 +99,7 @@ impl<'a> AddToCommandBuffer for DecodeH264<'a> {
         let mut video_decode_h264_dpb_slot_info = VideoDecodeH264DpbSlotInfoKHR::default().std_reference_info(&s);
 
         let picture_resource_choice = if self
-            .shared_parameters
+            .video_session_parameters
             .video_session()
             .decode_capabilities()
             .flags()

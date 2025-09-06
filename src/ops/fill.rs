@@ -1,22 +1,19 @@
 use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
-use crate::resources::{Buffer, BufferShared};
+use crate::resources::Buffer;
 use ash::vk;
 use ash::vk::{DependencyFlags, PipelineStageFlags, WHOLE_SIZE};
 
 /// Fills a buffer with a fixed value.
 pub struct FillBuffer<'a> {
-    buffer: &'a BufferShared<'a>,
+    buffer: &'a Buffer<'a>,
     value: u32,
 }
 
 impl<'a> FillBuffer<'a> {
     pub fn new(buffer: &'a Buffer, value: u32) -> Self {
-        Self {
-            buffer: buffer.shared(),
-            value,
-        }
+        Self { buffer, value }
     }
 }
 

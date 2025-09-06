@@ -1,5 +1,5 @@
-use crate::allocation::{Allocation, AllocationShared};
-use crate::device::DeviceShared;
+use crate::allocation::Allocation;
+use crate::device::Device;
 use crate::error::Error;
 use crate::video::h264::H264StreamInspector;
 use ash::vk;
@@ -42,17 +42,18 @@ impl BufferInfo {
     }
 }
 
-pub(crate) struct BufferShared<'a> {
-    shared_device: &'a DeviceShared<'a>,
-    shared_allocation: &'a AllocationShared<'a>,
+/// A 1-dimensional memory block, usually on the GPU.
+pub struct Buffer<'a> {
+    device: &'a Device<'a>,
+    allocation: &'a Allocation<'a>,
     device_buffer: vk::Buffer,
     buffer_info: BufferInfo,
 }
 
-impl<'a> BufferShared<'a> {
-    pub fn new(shared_allocation: &'a AllocationShared<'a>, buffer_info: &BufferInfo) -> Result<Self, Error> {
-        let shared_device = shared_allocation.device();
-        let native_device = shared_device.native();
+impl<'a> Buffer<'a> {
+    pub fn new(allocation: &'a Allocation<'a>, buffer_info: &BufferInfo) -> Result<Self, Error> {
+        let device = allocation.device();
+        let native_device = device.native();
 
         let usage = BufferUsageFlags::STORAGE_BUFFER
             | BufferUsageFlags::TRANSFER_DST
@@ -63,14 +64,14 @@ impl<'a> BufferShared<'a> {
             let buffer_create_info = BufferCreateInfo::default().size(buffer_info.size).usage(usage);
 
             let device_buffer = native_device.create_buffer(&buffer_create_info, None)?;
-            let device_memory = shared_allocation.native();
+            let device_memory = allocation.native();
             let offset = buffer_info.offset.unwrap_or(0);
 
             native_device.bind_buffer_memory(device_buffer, device_memory, offset)?;
 
             Ok(Self {
-                shared_device,
-                shared_allocation,
+                device,
+                allocation,
                 device_buffer,
                 buffer_info: buffer_info.clone(),
             })
@@ -78,12 +79,12 @@ impl<'a> BufferShared<'a> {
     }
 
     pub fn new_video_decode(
-        shared_allocation: &'a AllocationShared<'a>,
+        allocation: &'a Allocation<'a>,
         buffer_info: &BufferInfo,
         stream_inspector: &H264StreamInspector,
     ) -> Result<Self, Error> {
-        let shared_device = shared_allocation.device();
-        let native_device = shared_device.native();
+        let device = allocation.device();
+        let native_device = device.native();
 
         let usage = BufferUsageFlags::STORAGE_BUFFER
             | BufferUsageFlags::TRANSFER_DST
@@ -104,23 +105,23 @@ impl<'a> BufferShared<'a> {
                 .push_next(profile_infos);
 
             let device_buffer = native_device.create_buffer(&buffer_create_info, None)?;
-            let device_memory = shared_allocation.native();
+            let device_memory = allocation.native();
             let offset = buffer_info.offset.unwrap_or(0);
 
             native_device.bind_buffer_memory(device_buffer, device_memory, offset)?;
 
             Ok(Self {
-                shared_device,
-                shared_allocation,
+                device,
+                allocation,
                 device_buffer,
                 buffer_info: buffer_info.clone(),
             })
         }
     }
 
-    pub fn external(shared_allocation: &'a AllocationShared<'a>, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
-        let shared_device = shared_allocation.device();
-        let native_device = shared_device.native();
+    pub fn external(allocation: &'a Allocation<'a>, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
+        let device = allocation.device();
+        let native_device = device.native();
 
         let usage = BufferUsageFlags::STORAGE_BUFFER
             | BufferUsageFlags::TRANSFER_DST
@@ -133,14 +134,14 @@ impl<'a> BufferShared<'a> {
             let buffer_create_info = BufferCreateInfo::default().size(buffer_info.size).usage(usage).push_next(&mut eee);
 
             let device_buffer = native_device.create_buffer(&buffer_create_info, None)?;
-            let device_memory = shared_allocation.native();
+            let device_memory = allocation.native();
             let offset = buffer_info.offset.unwrap_or(0);
 
             native_device.bind_buffer_memory(device_buffer, device_memory, offset)?;
 
             Ok(Self {
-                shared_device,
-                shared_allocation,
+                device,
+                allocation,
                 device_buffer,
                 buffer_info: buffer_info.clone(),
             })
@@ -148,8 +149,8 @@ impl<'a> BufferShared<'a> {
     }
 
     pub fn upload(&self, data: &[u8]) -> Result<(), Error> {
-        let native_device = self.shared_device.native();
-        let device_memory = self.shared_allocation.native();
+        let native_device = self.device.native();
+        let device_memory = self.allocation.native();
         let offset = self.buffer_info.offset.unwrap_or(0);
 
         unsafe {
@@ -170,8 +171,8 @@ impl<'a> BufferShared<'a> {
     }
 
     pub fn download_into(&self, target: &mut [u8]) -> Result<(), Error> {
-        let native_device = self.shared_device.native();
-        let device_memory = self.shared_allocation.native();
+        let native_device = self.device.native();
+        let device_memory = self.allocation.native();
         let offset = self.buffer_info.offset.unwrap_or(0);
 
         unsafe {
@@ -200,64 +201,18 @@ impl<'a> BufferShared<'a> {
         self.device_buffer
     }
 
-    pub(crate) fn device(&self) -> &DeviceShared<'_> {
-        &self.shared_device
+    pub(crate) fn device(&self) -> &Device<'_> {
+        &self.device
     }
 }
 
-impl<'a> Drop for BufferShared<'a> {
+impl<'a> Drop for Buffer<'a> {
     fn drop(&mut self) {
-        let device = self.shared_device.native();
+        let device = self.device.native();
 
         unsafe {
             device.destroy_buffer(self.device_buffer, None);
         }
-    }
-}
-
-/// A 1-dimensional memory block, usually on the GPU.
-pub struct Buffer<'a> {
-    shared: BufferShared<'a>,
-}
-
-impl<'a> Buffer<'a> {
-    pub fn new(allocation: &'a Allocation<'a>, info: &BufferInfo) -> Result<Self, Error> {
-        let buffer_shared = BufferShared::new(allocation.shared(), info)?;
-
-        Ok(Self { shared: buffer_shared })
-    }
-
-    pub fn new_video_decode(
-        allocation: &'a Allocation<'a>,
-        info: &BufferInfo,
-        stream_inspector: &H264StreamInspector,
-    ) -> Result<Self, Error> {
-        let buffer_shared = BufferShared::new_video_decode(allocation.shared(), info, stream_inspector)?;
-
-        Ok(Self { shared: buffer_shared })
-    }
-
-    pub fn external(allocation: &'a Allocation<'a>, pointer: *mut c_void, info: &BufferInfo) -> Result<Self, Error> {
-        let buffer_shared = BufferShared::external(allocation.shared(), pointer, info)?;
-
-        Ok(Self { shared: buffer_shared })
-    }
-
-    pub fn size(&self) -> u64 {
-        self.shared.size()
-    }
-
-    #[allow(unused)]
-    pub(crate) fn shared(&self) -> &BufferShared<'_> {
-        &self.shared
-    }
-
-    pub fn upload(&self, data: &[u8]) -> Result<(), Error> {
-        self.shared.upload(data)
-    }
-
-    pub fn download_into(&self, target: &mut [u8]) -> Result<(), Error> {
-        self.shared.download_into(target)
     }
 }
 

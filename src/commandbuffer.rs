@@ -1,17 +1,17 @@
-use crate::device::{Device, DeviceShared};
+use crate::device::Device;
 use crate::error;
 use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
 
 pub(crate) struct CommandBufferShared<'a> {
-    shared_device: &'a DeviceShared<'a>,
+    device: &'a Device<'a>,
     native_command_pool: ash::vk::CommandPool,
     native_command_buffer: ash::vk::CommandBuffer,
 }
 
 impl<'a> CommandBufferShared<'a> {
-    pub fn new(shared_device: &'a DeviceShared<'a>, queue_family_index: u32) -> Result<Self, Error> {
-        let native_device = shared_device.native();
+    pub fn new(device: &'a Device<'a>, queue_family_index: u32) -> Result<Self, Error> {
+        let native_device = device.native();
 
         let command_pool_create_info = CommandPoolCreateInfo::default()
             .flags(CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
@@ -31,7 +31,7 @@ impl<'a> CommandBufferShared<'a> {
                 .ok_or_else(|| error!(Variant::NoCommandBuffer))?;
 
             Ok(Self {
-                shared_device,
+                device,
                 native_command_pool,
                 native_command_buffer,
             })
@@ -45,7 +45,7 @@ impl<'a> CommandBufferShared<'a> {
 
 impl<'a> Drop for CommandBufferShared<'a> {
     fn drop(&mut self) {
-        let device = self.shared_device.native();
+        let device = self.device.native();
 
         unsafe {
             device.free_command_buffers(self.native_command_pool, &[self.native_command_buffer]);
@@ -61,7 +61,7 @@ pub struct CommandBuffer<'a> {
 
 impl<'a> CommandBuffer<'a> {
     pub fn new(device: &'a Device, queue_family_index: u32) -> Result<Self, Error> {
-        let shared = CommandBufferShared::new(device.shared(), queue_family_index)?;
+        let shared = CommandBufferShared::new(device, queue_family_index)?;
 
         Ok(Self { shared })
     }
@@ -69,10 +69,6 @@ impl<'a> CommandBuffer<'a> {
     #[expect(unused)]
     pub(crate) fn native(&self) -> ash::vk::CommandBuffer {
         self.shared.native()
-    }
-
-    pub(crate) fn shared(&self) -> &CommandBufferShared<'_> {
-        &self.shared
     }
 }
 

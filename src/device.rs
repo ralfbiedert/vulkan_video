@@ -1,17 +1,18 @@
 use crate::error;
 use crate::error::{Error, Variant};
-use crate::instance::InstanceShared;
-use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
+use crate::instance::Instance;
+use crate::physicaldevice::PhysicalDevice;
 use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
 
-pub(crate) struct DeviceShared<'a> {
+/// Logical Vulkan device linked to some [`PhysicalDevice`](PhysicalDevice).
+pub struct Device<'a> {
     native_device: ash::Device,
-    shared_physical_device: &'a PhysicalDeviceShared<'a>,
+    physical_device: &'a PhysicalDevice<'a>,
 }
 
-impl<'a> DeviceShared<'a> {
-    pub(crate) fn new_with_families(shared_physical_device: &'a PhysicalDeviceShared, queue_families: &[u32]) -> Result<Self, Error> {
-        let native_instance = shared_physical_device.instance().native();
+impl<'a> Device<'a> {
+    pub fn new_with_families(physical_device: &'a PhysicalDevice, queue_families: &[u32]) -> Result<Self, Error> {
+        let native_instance = physical_device.instance().native();
 
         // SAFETY: Should be safe as native instance is valid.
         let mut physical_devices = unsafe { native_instance.enumerate_physical_devices()? };
@@ -51,24 +52,24 @@ impl<'a> DeviceShared<'a> {
 
             Ok(Self {
                 native_device,
-                shared_physical_device,
+                physical_device,
             })
         }
     }
 
-    pub(crate) fn new(shared_physical_device: &'a PhysicalDeviceShared) -> Result<Self, Error> {
-        let infos = shared_physical_device.queue_family_infos().available().to_vec();
+    pub fn new(physical_device: &'a PhysicalDevice) -> Result<Self, Error> {
+        let infos = physical_device.queue_family_infos().available().to_vec();
 
-        Self::new_with_families(shared_physical_device, &infos)
+        Self::new_with_families(physical_device, &infos)
     }
 
     #[expect(unused)]
-    pub(crate) fn physical_device(&self) -> &PhysicalDeviceShared<'_> {
-        &self.shared_physical_device
+    pub(crate) fn physical_device(&self) -> &PhysicalDevice<'_> {
+        &self.physical_device
     }
 
-    pub(crate) fn instance(&self) -> &InstanceShared {
-        self.shared_physical_device.instance()
+    pub(crate) fn instance(&self) -> &Instance {
+        self.physical_device.instance()
     }
 
     pub(crate) fn native(&self) -> &ash::Device {
@@ -76,34 +77,11 @@ impl<'a> DeviceShared<'a> {
     }
 }
 
-impl<'a> Drop for DeviceShared<'a> {
+impl<'a> Drop for Device<'a> {
     fn drop(&mut self) {
         unsafe {
             self.native_device.destroy_device(None);
         }
-    }
-}
-
-/// Logical Vulkan device linked to some [`PhysicalDevice`](PhysicalDevice).
-pub struct Device<'a> {
-    shared: DeviceShared<'a>,
-}
-
-impl<'a> Device<'a> {
-    pub fn new_with_families(physical_device: &'a PhysicalDevice, queue_families: &[u32]) -> Result<Self, Error> {
-        let device_shared = DeviceShared::new_with_families(physical_device.shared(), queue_families)?;
-
-        Ok(Self { shared: device_shared })
-    }
-
-    pub fn new(physical_device: &'a PhysicalDevice) -> Result<Self, Error> {
-        let device_shared = DeviceShared::new(physical_device.shared())?;
-
-        Ok(Self { shared: device_shared })
-    }
-
-    pub(crate) fn shared(&self) -> &DeviceShared<'_> {
-        &self.shared
     }
 }
 
