@@ -168,7 +168,7 @@ impl<'a> UnboundImage<'a> {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
         }
 
-        Ok(Image { image: self, allocation })
+        Ok(Image { image: self })
     }
 
     pub fn memory_requirement(&self) -> MemoryRequirements {
@@ -189,7 +189,9 @@ impl<'a> UnboundImage<'a> {
 /// A often 2D image, usually stored on the GPU.
 pub struct Image<'a> {
     image: UnboundImage<'a>,
-    allocation: &'a Allocation<'a>,
+    // As long as this object inherits the lifetime 'a, that's good enough.
+    // We never need to access the allocation information from this object.
+    // allocation: &'a Allocation<'a>,
 }
 
 impl<'a> Image<'a> {
