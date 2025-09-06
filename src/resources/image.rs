@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -6,8 +5,7 @@ use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
 use crate::device::{Device, DeviceShared};
-use crate::error;
-use crate::error::{Error, Variant};
+use crate::error::Error;
 use crate::video::h264::H264StreamInspector;
 
 pub struct MemoryRequirements {
@@ -100,14 +98,13 @@ impl ImageInfo {
     }
 }
 
-pub(crate) struct ImageShared {
+pub(crate) struct UnboundImageShared {
     shared_device: Arc<DeviceShared>,
-    shared_allocation: RefCell<Option<Arc<AllocationShared>>>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
-impl ImageShared {
+impl UnboundImageShared {
     fn new(shared_device: Arc<DeviceShared>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
@@ -128,7 +125,6 @@ impl ImageShared {
 
             Ok(Self {
                 shared_device,
-                shared_allocation: RefCell::new(None),
                 native_image,
                 info: info.clone(),
             })
@@ -158,29 +154,27 @@ impl ImageShared {
 
             Ok(Self {
                 shared_device,
-                shared_allocation: RefCell::new(None),
                 native_image,
                 info: info.clone(),
             })
         }
     }
 
-    pub fn bind(&self, shared_allocation: Arc<AllocationShared>) -> Result<(), Error> {
+    pub fn bind(self, shared_allocation: Arc<AllocationShared>) -> Result<ImageShared, Error> {
         let native_device = self.shared_device.native();
         let native_image = self.native_image;
         let native_allocation = shared_allocation.native();
 
-        if self.shared_allocation.borrow().is_some() {
-            return Err(error!(Variant::ImageAlreadyBound));
-        }
-
         unsafe {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
-
-            self.shared_allocation.replace(Some(shared_allocation));
-
-            Ok(())
         }
+
+        Ok(ImageShared {
+            shared_device: self.shared_device,
+            shared_allocation,
+            native_image,
+            info: self.info,
+        })
     }
 
     pub(crate) fn memory_requirement(&self) -> MemoryRequirements {
@@ -196,7 +190,16 @@ impl ImageShared {
             }
         }
     }
+}
 
+pub(crate) struct ImageShared {
+    shared_device: Arc<DeviceShared>,
+    shared_allocation: Arc<AllocationShared>,
+    native_image: ash::vk::Image,
+    info: ImageInfo,
+}
+
+impl ImageShared {
     pub(crate) fn native(&self) -> ash::vk::Image {
         self.native_image
     }
@@ -220,37 +223,40 @@ impl Drop for ImageShared {
     }
 }
 
+/// An `Image` that has yet to be bound.  Call .bind() to construct an `Image`.
+pub struct UnboundImage {
+    shared: UnboundImageShared,
+}
+
+impl UnboundImage {
+    pub fn new(device: &Device, info: &ImageInfo) -> Result<Self, Error> {
+        let shared_device = UnboundImageShared::new(device.shared(), info)?;
+
+        Ok(Self { shared: shared_device })
+    }
+
+    pub fn new_video_target(device: &Device, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+        let shared_device = UnboundImageShared::new_video_target(device.shared(), info, stream_inspector)?;
+
+        Ok(Self { shared: shared_device })
+    }
+
+    pub fn bind(self, allocation: &Allocation) -> Result<Image, Error> {
+        let shared = self.shared.bind(allocation.shared())?;
+        Ok(Image { shared: Rc::new(shared) })
+    }
+
+    pub fn memory_requirement(&self) -> MemoryRequirements {
+        self.shared.memory_requirement()
+    }
+}
+
 /// A often 2D image, usually stored on the GPU.
 pub struct Image {
     shared: Rc<ImageShared>,
 }
 
 impl Image {
-    pub fn new(device: &Device, info: &ImageInfo) -> Result<Self, Error> {
-        let shared_device = ImageShared::new(device.shared(), info)?;
-
-        Ok(Self {
-            shared: Rc::new(shared_device),
-        })
-    }
-
-    pub fn new_video_target(device: &Device, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
-
-        Ok(Self {
-            shared: Rc::new(shared_device),
-        })
-    }
-
-    pub fn bind(self, allocation: &Allocation) -> Result<Self, Error> {
-        self.shared.bind(allocation.shared())?;
-        Ok(self)
-    }
-
-    pub fn memory_requirement(&self) -> MemoryRequirements {
-        self.shared.memory_requirement()
-    }
-
     pub(crate) fn shared(&self) -> Rc<ImageShared> {
         self.shared.clone()
     }
@@ -279,7 +285,7 @@ mod test {
     use crate::error::Error;
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
-    use crate::resources::{Image, ImageInfo};
+    use crate::resources::{ImageInfo, UnboundImage};
 
     #[test]
     #[cfg(not(miri))]
@@ -297,7 +303,7 @@ mod test {
             .image_type(ImageType::TYPE_2D)
             .tiling(ImageTiling::OPTIMAL)
             .extent(Extent3D::default().width(512).height(512).depth(1));
-        let image = Image::new(&device, &info)?;
+        let image = UnboundImage::new(&device, &info)?;
         let heap_index = image.memory_requirement().any_heap();
         let allocation = Allocation::new(&device, 1024 * 1024, heap_index)?;
 

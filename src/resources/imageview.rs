@@ -139,7 +139,7 @@ mod test {
     use crate::error::Error;
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
-    use crate::resources::{Image, ImageInfo, ImageView, ImageViewInfo};
+    use crate::resources::{ImageInfo, ImageView, ImageViewInfo, UnboundImage};
 
     #[test]
     #[cfg(not(miri))]
@@ -158,7 +158,7 @@ mod test {
             .tiling(ImageTiling::OPTIMAL)
             .extent(Extent3D::default().width(512).height(512).depth(1));
 
-        let image = Image::new(&device, &image_info)?;
+        let image = UnboundImage::new(&device, &image_info)?;
         let heap_type = image.memory_requirement().any_heap();
         let allocation = Allocation::new(&device, 1024 * 1024, heap_type)?;
 
