@@ -3,7 +3,6 @@ use crate::error::Error;
 use crate::instance::InstanceShared;
 use ash::vk::{DeviceMemory, ExternalMemoryHandleTypeFlags, ImportMemoryFdInfoKHR, MemoryAllocateInfo};
 use std::ffi::c_void;
-use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
 pub struct MemoryTypeIndex(u32);
@@ -14,15 +13,15 @@ impl MemoryTypeIndex {
 }
 
 pub(crate) struct AllocationShared {
-    shared_instance: Arc<InstanceShared>,
-    shared_device: Arc<DeviceShared>,
+    shared_instance: InstanceShared,
+    shared_device: DeviceShared,
     device_memory: DeviceMemory,
     // size: u64,
     // type_index: MemoryTypeIndex,
 }
 
 impl AllocationShared {
-    pub fn new(shared_device: Arc<DeviceShared>, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
+    pub fn new(shared_device: DeviceShared, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let native_device = shared_device.native();
         let info = MemoryAllocateInfo::default().allocation_size(size).memory_type_index(type_index.0);
         let device_memory = unsafe { native_device.allocate_memory(&info, None)? };
@@ -36,7 +35,7 @@ impl AllocationShared {
         })
     }
 
-    pub fn new_external(shared_device: Arc<DeviceShared>, external: *mut c_void, size: u64) -> Result<Self, Error> {
+    pub fn new_external(shared_device: DeviceShared, external: *mut c_void, size: u64) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let mut todo_bad = ImportMemoryFdInfoKHR::default()
@@ -62,11 +61,11 @@ impl AllocationShared {
     }
 
     #[allow(unused)]
-    pub(crate) fn instance(&self) -> Arc<InstanceShared> {
+    pub(crate) fn instance(&self) -> InstanceShared {
         self.shared_instance.clone()
     }
 
-    pub(crate) fn device(&self) -> Arc<DeviceShared> {
+    pub(crate) fn device(&self) -> DeviceShared {
         self.shared_device.clone()
     }
 
@@ -87,7 +86,7 @@ impl Drop for AllocationShared {
 
 /// An allocation on a host or device.
 pub struct Allocation {
-    shared: Arc<AllocationShared>,
+    shared: AllocationShared,
 }
 
 impl Allocation {
@@ -95,7 +94,7 @@ impl Allocation {
         let allocation_shared = AllocationShared::new(device.shared(), size, type_index)?;
 
         Ok(Self {
-            shared: Arc::new(allocation_shared),
+            shared: allocation_shared,
         })
     }
 
@@ -103,11 +102,11 @@ impl Allocation {
         let allocation_shared = AllocationShared::new_external(device.shared(), external, size)?;
 
         Ok(Self {
-            shared: Arc::new(allocation_shared),
+            shared: allocation_shared,
         })
     }
 
-    pub(crate) fn shared(&self) -> Arc<AllocationShared> {
+    pub(crate) fn shared(&self) -> AllocationShared {
         self.shared.clone()
     }
 

@@ -8,7 +8,6 @@ use ash::vk::{
     MemoryMapFlags, WHOLE_SIZE,
 };
 use std::ffi::c_void;
-use std::sync::Arc;
 
 /// Specifies how to crate a [`Buffer`](Buffer).
 #[derive(Debug, Default, Clone)]
@@ -44,14 +43,14 @@ impl BufferInfo {
 }
 
 pub(crate) struct BufferShared {
-    shared_device: Arc<DeviceShared>,
-    shared_allocation: Arc<AllocationShared>,
+    shared_device: DeviceShared,
+    shared_allocation: AllocationShared,
     device_buffer: vk::Buffer,
     buffer_info: BufferInfo,
 }
 
 impl BufferShared {
-    pub fn new(shared_allocation: Arc<AllocationShared>, buffer_info: &BufferInfo) -> Result<Self, Error> {
+    pub fn new(shared_allocation: AllocationShared, buffer_info: &BufferInfo) -> Result<Self, Error> {
         let shared_device = shared_allocation.device();
         let native_device = shared_device.native();
 
@@ -79,7 +78,7 @@ impl BufferShared {
     }
 
     pub fn new_video_decode(
-        shared_allocation: Arc<AllocationShared>,
+        shared_allocation: AllocationShared,
         buffer_info: &BufferInfo,
         stream_inspector: &H264StreamInspector,
     ) -> Result<Self, Error> {
@@ -119,7 +118,7 @@ impl BufferShared {
         }
     }
 
-    pub fn external(shared_allocation: Arc<AllocationShared>, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
+    pub fn external(shared_allocation: AllocationShared, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
         let shared_device = shared_allocation.device();
         let native_device = shared_device.native();
 
@@ -201,7 +200,7 @@ impl BufferShared {
         self.device_buffer
     }
 
-    pub(crate) fn device(&self) -> Arc<DeviceShared> {
+    pub(crate) fn device(&self) -> DeviceShared {
         self.shared_device.clone()
     }
 }
@@ -218,7 +217,7 @@ impl Drop for BufferShared {
 
 /// A 1-dimensional memory block, usually on the GPU.
 pub struct Buffer {
-    shared: Arc<BufferShared>,
+    shared: BufferShared,
 }
 
 impl Buffer {
@@ -226,7 +225,7 @@ impl Buffer {
         let buffer_shared = BufferShared::new(allocation.shared(), info)?;
 
         Ok(Self {
-            shared: Arc::new(buffer_shared),
+            shared: buffer_shared,
         })
     }
 
@@ -234,7 +233,7 @@ impl Buffer {
         let buffer_shared = BufferShared::new_video_decode(allocation.shared(), info, stream_inspector)?;
 
         Ok(Self {
-            shared: Arc::new(buffer_shared),
+            shared: buffer_shared,
         })
     }
 
@@ -242,7 +241,7 @@ impl Buffer {
         let buffer_shared = BufferShared::external(allocation.shared(), pointer, info)?;
 
         Ok(Self {
-            shared: Arc::new(buffer_shared),
+            shared: buffer_shared,
         })
     }
 
@@ -251,7 +250,7 @@ impl Buffer {
     }
 
     #[allow(unused)]
-    pub(crate) fn shared(&self) -> Arc<BufferShared> {
+    pub(crate) fn shared(&self) -> BufferShared {
         self.shared.clone()
     }
 

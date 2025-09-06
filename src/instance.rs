@@ -2,7 +2,6 @@ use crate::error::Error;
 use ash::vk;
 use ash::vk::{ApplicationInfo, InstanceCreateFlags, InstanceCreateInfo};
 use std::ffi::CString;
-use std::sync::Arc;
 
 /// Stores information (e.g., app name, version) about the current instance.
 #[derive(Debug)]
@@ -115,17 +114,17 @@ impl Drop for InstanceShared {
 
 /// The Vulkan driver instance, **start here**.
 pub struct Instance {
-    shared: Arc<InstanceShared>,
+    shared: InstanceShared,
 }
 
 impl Instance {
     pub fn new(info: &InstanceInfo) -> Result<Self, Error> {
         Ok(Self {
-            shared: Arc::new(InstanceShared::new(info)?),
+            shared: InstanceShared::new(info)?,
         })
     }
 
-    pub(crate) fn shared(&self) -> Arc<InstanceShared> {
+    pub(crate) fn shared(&self) -> InstanceShared {
         self.shared.clone()
     }
 }

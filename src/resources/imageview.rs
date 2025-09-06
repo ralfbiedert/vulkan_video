@@ -1,6 +1,3 @@
-use std::rc::Rc;
-use std::sync::Arc;
-
 use ash::vk::{Format, ImageAspectFlags, ImageSubresourceRange, ImageViewCreateInfo, ImageViewType};
 
 use crate::device::DeviceShared;
@@ -50,13 +47,13 @@ impl ImageViewInfo {
 }
 
 pub(crate) struct ImageViewShared {
-    shared_image: Rc<ImageShared>,
-    shared_device: Arc<DeviceShared>,
+    shared_image: ImageShared,
+    shared_device: DeviceShared,
     native_view: ash::vk::ImageView,
 }
 
 impl ImageViewShared {
-    pub fn new(shared_image: Rc<ImageShared>, info: &ImageViewInfo) -> Result<Self, Error> {
+    pub fn new(shared_image: ImageShared, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_device = shared_image.device();
 
         let native_image = shared_image.native();
@@ -88,7 +85,7 @@ impl ImageViewShared {
         self.native_view
     }
 
-    pub(crate) fn image(&self) -> Rc<ImageShared> {
+    pub(crate) fn image(&self) -> ImageShared {
         self.shared_image.clone()
     }
 }
@@ -105,7 +102,7 @@ impl Drop for ImageViewShared {
 
 /// View of an [`Image`](Image).
 pub struct ImageView {
-    shared_view: Rc<ImageViewShared>,
+    shared_view: ImageViewShared,
 }
 
 impl ImageView {
@@ -113,11 +110,11 @@ impl ImageView {
         let shared_view = ImageViewShared::new(image.shared(), info)?;
 
         Ok(Self {
-            shared_view: Rc::new(shared_view),
+            shared_view: shared_view,
         })
     }
 
-    pub(crate) fn shared(&self) -> Rc<ImageViewShared> {
+    pub(crate) fn shared(&self) -> ImageViewShared {
         self.shared_view.clone()
     }
 

@@ -10,15 +10,14 @@ use ash::vk::{
     VideoSessionParametersKHR, VideoSessionParametersUpdateInfoKHR,
 };
 use std::ptr::{addr_of, addr_of_mut, null};
-use std::sync::Arc;
 
 pub(crate) struct VideoSessionParametersShared {
-    shared_session: Arc<VideoSessionShared>,
+    shared_session: VideoSessionShared,
     native_parameters: VideoSessionParametersKHR,
 }
 
 impl VideoSessionParametersShared {
-    pub fn new(shared_session: Arc<VideoSessionShared>, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    pub fn new(shared_session: VideoSessionShared, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_session = shared_session.native();
         let native_device = shared_session.device().native();
         let native_queue_fns = shared_session.queue_fns();
@@ -163,7 +162,7 @@ impl VideoSessionParametersShared {
         self.native_parameters
     }
 
-    pub(crate) fn video_session(&self) -> Arc<VideoSessionShared> {
+    pub(crate) fn video_session(&self) -> VideoSessionShared {
         self.shared_session.clone()
     }
 }
@@ -183,17 +182,17 @@ impl Drop for VideoSessionParametersShared {
 
 /// Vulkan-internal state needed for operating on a single video frame.
 pub struct VideoSessionParameters {
-    shared: Arc<VideoSessionParametersShared>,
+    shared: VideoSessionParametersShared,
 }
 
 impl VideoSessionParameters {
     pub fn new(session: &VideoSession, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared = VideoSessionParametersShared::new(session.shared(), stream_inspector)?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> Arc<VideoSessionParametersShared> {
+    pub(crate) fn shared(&self) -> VideoSessionParametersShared {
         self.shared.clone()
     }
 }

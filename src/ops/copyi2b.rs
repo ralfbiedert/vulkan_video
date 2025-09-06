@@ -3,13 +3,11 @@ use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared, Image, ImageShared};
 use ash::vk::{BufferImageCopy, ImageAspectFlags, ImageLayout, ImageSubresourceLayers};
-use std::rc::Rc;
-use std::sync::Arc;
 
 /// Performs an image-to-buffer copy operation.
 pub struct CopyImage2Buffer {
-    image: Rc<ImageShared>,
-    buffer: Arc<BufferShared>,
+    image: ImageShared,
+    buffer: BufferShared,
     aspect_mask: ImageAspectFlags,
 }
 

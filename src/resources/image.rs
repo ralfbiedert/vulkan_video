@@ -1,7 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Arc;
-
 use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
 use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
@@ -101,14 +97,14 @@ impl ImageInfo {
 }
 
 pub(crate) struct ImageShared {
-    shared_device: Arc<DeviceShared>,
-    shared_allocation: RefCell<Option<Arc<AllocationShared>>>,
+    shared_device: DeviceShared,
+    shared_allocation: Option<AllocationShared>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
 impl ImageShared {
-    fn new(shared_device: Arc<DeviceShared>, info: &ImageInfo) -> Result<Self, Error> {
+    fn new(shared_device: DeviceShared, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let create_image = ImageCreateInfo::default()
@@ -128,14 +124,14 @@ impl ImageShared {
 
             Ok(Self {
                 shared_device,
-                shared_allocation: RefCell::new(None),
+                shared_allocation: None,
                 native_image,
                 info: info.clone(),
             })
         }
     }
 
-    fn new_video_target(shared_device: Arc<DeviceShared>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    fn new_video_target(shared_device: DeviceShared, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         unsafe {
@@ -158,26 +154,26 @@ impl ImageShared {
 
             Ok(Self {
                 shared_device,
-                shared_allocation: RefCell::new(None),
+                shared_allocation: None,
                 native_image,
                 info: info.clone(),
             })
         }
     }
 
-    pub fn bind(&self, shared_allocation: Arc<AllocationShared>) -> Result<(), Error> {
+    pub fn bind(&mut self, shared_allocation: AllocationShared) -> Result<(), Error> {
         let native_device = self.shared_device.native();
         let native_image = self.native_image;
         let native_allocation = shared_allocation.native();
 
-        if self.shared_allocation.borrow().is_some() {
+        if self.shared_allocation.is_some() {
             return Err(error!(Variant::ImageAlreadyBound));
         }
 
         unsafe {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
 
-            self.shared_allocation.replace(Some(shared_allocation));
+            self.shared_allocation=Some(shared_allocation);
 
             Ok(())
         }
@@ -201,7 +197,7 @@ impl ImageShared {
         self.native_image
     }
 
-    pub(crate) fn device(&self) -> Arc<DeviceShared> {
+    pub(crate) fn device(&self) -> DeviceShared {
         self.shared_device.clone()
     }
 
@@ -222,7 +218,7 @@ impl Drop for ImageShared {
 
 /// A often 2D image, usually stored on the GPU.
 pub struct Image {
-    shared: Rc<ImageShared>,
+    shared: ImageShared,
 }
 
 impl Image {
@@ -230,7 +226,7 @@ impl Image {
         let shared_device = ImageShared::new(device.shared(), info)?;
 
         Ok(Self {
-            shared: Rc::new(shared_device),
+            shared: shared_device,
         })
     }
 
@@ -238,11 +234,11 @@ impl Image {
         let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
 
         Ok(Self {
-            shared: Rc::new(shared_device),
+            shared: shared_device,
         })
     }
 
-    pub fn bind(self, allocation: &Allocation) -> Result<Self, Error> {
+    pub fn bind(mut self, allocation: &Allocation) -> Result<Self, Error> {
         self.shared.bind(allocation.shared())?;
         Ok(self)
     }
@@ -251,7 +247,7 @@ impl Image {
         self.shared.memory_requirement()
     }
 
-    pub(crate) fn shared(&self) -> Rc<ImageShared> {
+    pub(crate) fn shared(&self) -> ImageShared {
         self.shared.clone()
     }
 
@@ -261,7 +257,7 @@ impl Image {
     }
 
     #[allow(unused)]
-    pub(crate) fn device(&self) -> Arc<DeviceShared> {
+    pub(crate) fn device(&self) -> DeviceShared {
         self.shared.shared_device.clone()
     }
 

@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use ash::vk::{CommandBufferBeginInfo, CommandBufferResetFlags, FenceCreateFlags, FenceCreateInfo, SubmitInfo};
 
@@ -24,13 +23,13 @@ impl<'a> CommandBuilder<'a> {
 }
 
 struct QueueShared {
-    shared_device: Arc<DeviceShared>,
+    shared_device: DeviceShared,
     native_queue: ash::vk::Queue,
     queue_family_index: u32,
 }
 
 impl QueueShared {
-    fn new(shared_device: Arc<DeviceShared>, queue_family_index: u32, index: u32) -> Result<Self, Error> {
+    fn new(shared_device: DeviceShared, queue_family_index: u32, index: u32) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         unsafe {
@@ -46,7 +45,7 @@ impl QueueShared {
 
     pub fn build_and_submit(
         &self,
-        command_buffer: Arc<CommandBufferShared>,
+        command_buffer: CommandBufferShared,
         f: impl FnOnce(&mut CommandBuilder) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let native_device = self.shared_device.native();
@@ -84,14 +83,14 @@ impl QueueShared {
 
 /// GPU execution unit to run your command buffers.
 pub struct Queue {
-    shared: Arc<QueueShared>,
+    shared: QueueShared,
 }
 
 impl Queue {
     pub fn new(device: &Device, family: u32, index: u32) -> Result<Self, Error> {
         let shared = QueueShared::new(device.shared(), family, index)?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
     pub fn build_and_submit(

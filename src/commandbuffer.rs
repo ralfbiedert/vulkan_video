@@ -2,17 +2,16 @@ use crate::device::{Device, DeviceShared};
 use crate::error;
 use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
-use std::sync::Arc;
 
 #[allow(unused)]
 pub(crate) struct CommandBufferShared {
-    shared_device: Arc<DeviceShared>,
+    shared_device: DeviceShared,
     native_command_pool: ash::vk::CommandPool,
     native_command_buffer: ash::vk::CommandBuffer,
 }
 
 impl CommandBufferShared {
-    pub fn new(shared_device: Arc<DeviceShared>, queue_family_index: u32) -> Result<Self, Error> {
+    pub fn new(shared_device: DeviceShared, queue_family_index: u32) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let command_pool_create_info = CommandPoolCreateInfo::default()
@@ -59,14 +58,14 @@ impl Drop for CommandBufferShared {
 /// Stores commands related to a specific queue family.
 #[allow(unused)]
 pub struct CommandBuffer {
-    shared: Arc<CommandBufferShared>,
+    shared: CommandBufferShared,
 }
 
 impl CommandBuffer {
     pub fn new(device: &Device, queue_family_index: u32) -> Result<Self, Error> {
         let shared = CommandBufferShared::new(device.shared(), queue_family_index)?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
     #[allow(unused)]
@@ -74,7 +73,7 @@ impl CommandBuffer {
         self.shared.native()
     }
 
-    pub(crate) fn shared(&self) -> Arc<CommandBufferShared> {
+    pub(crate) fn shared(&self) -> CommandBufferShared {
         self.shared.clone()
     }
 }

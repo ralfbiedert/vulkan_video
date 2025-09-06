@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use ash::vk::{DescriptorSetLayout, DescriptorSetLayoutBinding, DescriptorSetLayoutCreateInfo, DescriptorType, ShaderStageFlags};
 
@@ -94,13 +93,13 @@ where
 }
 
 pub(crate) struct ParametersShared<T> {
-    shared_device: Arc<DeviceShared>,
+    shared_device: DeviceShared,
     descriptor_set_layout: DescriptorSetLayout,
     _phantom: PhantomData<T>,
 }
 
 impl<T: ShaderParameterSet> ParametersShared<T> {
-    pub fn new(shared_device: Arc<DeviceShared>) -> Result<Self, Error> {
+    pub fn new(shared_device: DeviceShared) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let descriptor_types = T::descriptor_types();
@@ -146,17 +145,17 @@ impl<T> Drop for ParametersShared<T> {
 
 /// Holds parameter information for a [Shader](crate::shader::Shader).
 pub struct Parameters<T: ShaderParameterSet> {
-    shared: Arc<ParametersShared<T>>,
+    shared: ParametersShared<T>,
 }
 
 impl<T: ShaderParameterSet> Parameters<T> {
     pub fn new(device: &Device) -> Result<Self, Error> {
         let shared = ParametersShared::new(device.shared())?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> Arc<ParametersShared<T>> {
+    pub(crate) fn shared(&self) -> ParametersShared<T> {
         self.shared.clone()
     }
 }

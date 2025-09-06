@@ -4,22 +4,21 @@ use crate::shader::parameters::{Parameters, ParametersShared};
 use crate::shader::ShaderParameterSet;
 use ash::vk::{ShaderModule, ShaderModuleCreateInfo};
 use std::ffi::{CStr, CString};
-use std::sync::Arc;
 
 #[allow(unused)]
 pub(crate) struct ShaderShared<T> {
-    shared_device: Arc<DeviceShared>,
-    shared_parameters: Arc<ParametersShared<T>>,
+    shared_device: DeviceShared,
+    shared_parameters: ParametersShared<T>,
     shader_module: ShaderModule,
     entry_point: CString,
 }
 
 impl<T: ShaderParameterSet> ShaderShared<T> {
     pub fn new(
-        shared_device: Arc<DeviceShared>,
+        shared_device: DeviceShared,
         spirv_code: &[u8],
         entry_point: &str,
-        shared_parameters: Arc<ParametersShared<T>>,
+        shared_parameters: ParametersShared<T>,
     ) -> Result<Self, Error> {
         let entry_point = CString::new(entry_point)?;
 
@@ -47,7 +46,7 @@ impl<T: ShaderParameterSet> ShaderShared<T> {
         &self.entry_point
     }
 
-    pub(crate) fn parameters(&self) -> Arc<ParametersShared<T>> {
+    pub(crate) fn parameters(&self) -> ParametersShared<T> {
         self.shared_parameters.clone()
     }
 }
@@ -62,17 +61,17 @@ impl<T> Drop for ShaderShared<T> {
 
 /// Some GPU program, mostly for postprocessing video frames.
 pub struct Shader<T: ShaderParameterSet> {
-    shared: Arc<ShaderShared<T>>,
+    shared: ShaderShared<T>,
 }
 
 impl<T: ShaderParameterSet> Shader<T> {
     pub fn new(device: &Device, spirv_code: &[u8], entry_point: &str, parameters: &Parameters<T>) -> Result<Self, Error> {
         let shared = ShaderShared::<T>::new(device.shared(), spirv_code, entry_point, parameters.shared())?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> Arc<ShaderShared<T>> {
+    pub(crate) fn shared(&self) -> ShaderShared<T> {
         self.shared.clone()
     }
 
@@ -82,7 +81,7 @@ impl<T: ShaderParameterSet> Shader<T> {
     }
 
     #[allow(unused)]
-    pub(crate) fn parameters(&self) -> Arc<ParametersShared<T>> {
+    pub(crate) fn parameters(&self) -> ParametersShared<T> {
         self.shared().parameters()
     }
 }

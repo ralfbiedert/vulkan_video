@@ -13,8 +13,6 @@ use ash::vk::{
     VideoDecodeCapabilityFlagsKHR, VideoDecodeH264DpbSlotInfoKHR, VideoDecodeH264PictureInfoKHR, VideoDecodeInfoKHR, VideoEndCodingInfoKHR,
     VideoPictureResourceInfoKHR, VideoReferenceSlotInfoKHR, QUEUE_FAMILY_IGNORED,
 };
-use std::rc::Rc;
-use std::sync::Arc;
 
 /// Specifies which part of a buffer to decode.
 #[derive(Copy, Clone)]
@@ -31,10 +29,10 @@ impl DecodeInfo {
 
 /// Decode a H.264 video frame.
 pub struct DecodeH264 {
-    shared_parameters: Arc<VideoSessionParametersShared>,
-    shared_buffer: Arc<BufferShared>,
-    shared_image_view: Rc<ImageViewShared>,
-    shared_ref_view: Rc<ImageViewShared>,
+    shared_parameters: VideoSessionParametersShared,
+    shared_buffer: BufferShared,
+    shared_image_view: ImageViewShared,
+    shared_ref_view: ImageViewShared,
     decode_info: DecodeInfo,
 }
 

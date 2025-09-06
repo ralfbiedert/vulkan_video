@@ -3,16 +3,15 @@ use crate::error::{Error, Variant};
 use crate::instance::InstanceShared;
 use crate::physicaldevice::{PhysicalDevice, PhysicalDeviceShared};
 use ash::vk::{DeviceCreateInfo, DeviceQueueCreateInfo, PhysicalDeviceFeatures2, PhysicalDeviceSynchronization2Features};
-use std::sync::Arc;
 
 #[allow(unused)]
 pub(crate) struct DeviceShared {
     native_device: ash::Device,
-    shared_physical_device: Arc<PhysicalDeviceShared>,
+    shared_physical_device: PhysicalDeviceShared,
 }
 
 impl DeviceShared {
-    pub(crate) fn new_with_families(shared_physical_device: Arc<PhysicalDeviceShared>, queue_families: &[u32]) -> Result<Self, Error> {
+    pub(crate) fn new_with_families(shared_physical_device: PhysicalDeviceShared, queue_families: &[u32]) -> Result<Self, Error> {
         let native_instance = shared_physical_device.instance().native();
 
         // SAFETY: Should be safe as native instance is valid.
@@ -58,18 +57,18 @@ impl DeviceShared {
         }
     }
 
-    pub(crate) fn new(shared_physical_device: Arc<PhysicalDeviceShared>) -> Result<Self, Error> {
+    pub(crate) fn new(shared_physical_device: PhysicalDeviceShared) -> Result<Self, Error> {
         let infos = shared_physical_device.queue_family_infos().available().to_vec();
 
         Self::new_with_families(shared_physical_device, &infos)
     }
 
     #[allow(unused)]
-    pub(crate) fn physical_device(&self) -> Arc<PhysicalDeviceShared> {
+    pub(crate) fn physical_device(&self) -> PhysicalDeviceShared {
         self.shared_physical_device.clone()
     }
 
-    pub(crate) fn instance(&self) -> Arc<InstanceShared> {
+    pub(crate) fn instance(&self) -> InstanceShared {
         self.shared_physical_device.instance()
     }
 
@@ -88,7 +87,7 @@ impl Drop for DeviceShared {
 
 /// Logical Vulkan device linked to some [`PhysicalDevice`](PhysicalDevice).
 pub struct Device {
-    shared: Arc<DeviceShared>,
+    shared: DeviceShared,
 }
 
 impl Device {
@@ -96,7 +95,7 @@ impl Device {
         let device_shared = DeviceShared::new_with_families(physical_device.shared(), queue_families)?;
 
         Ok(Self {
-            shared: Arc::new(device_shared),
+            shared: device_shared,
         })
     }
 
@@ -104,11 +103,11 @@ impl Device {
         let device_shared = DeviceShared::new(physical_device.shared())?;
 
         Ok(Self {
-            shared: Arc::new(device_shared),
+            shared: device_shared,
         })
     }
 
-    pub(crate) fn shared(&self) -> Arc<DeviceShared> {
+    pub(crate) fn shared(&self) -> DeviceShared {
         self.shared.clone()
     }
 }

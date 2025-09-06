@@ -4,11 +4,10 @@ use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared};
 use ash::vk;
 use ash::vk::{DependencyFlags, PipelineStageFlags, WHOLE_SIZE};
-use std::sync::Arc;
 
 /// Fills a buffer with a fixed value.
 pub struct FillBuffer {
-    buffer: Arc<BufferShared>,
+    buffer: BufferShared,
     value: u32,
 }
 
