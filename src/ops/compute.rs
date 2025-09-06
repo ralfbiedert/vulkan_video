@@ -10,15 +10,15 @@ use crate::queue::CommandBuilder;
 use crate::shader::{ParameterType, Pipeline, PipelineShared, ShaderParameterSet};
 
 /// Run a compute shader.
-pub struct Compute<'a,T> {
-    shared_pipeline: &'a PipelineShared<'a,T>,
+pub struct Compute<'a, T> {
+    shared_pipeline: &'a PipelineShared<'a, T>,
     dispatch_groups: (u32, u32, u32),
     native_descriptor_pool: DescriptorPool,
     native_descriptor_sets: Vec<DescriptorSet>,
     params: T,
 }
 
-impl<'a,T: ShaderParameterSet> Compute<'a,T> {
+impl<'a, T: ShaderParameterSet> Compute<'a, T> {
     pub fn new(pipeline: &'a Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let shared_pipeline = pipeline.shared();
         let shared_parameters = shared_pipeline.parameters();
@@ -52,7 +52,7 @@ impl<'a,T: ShaderParameterSet> Compute<'a,T> {
     }
 }
 
-impl<'a,T> Drop for Compute<'a,T> {
+impl<'a, T> Drop for Compute<'a, T> {
     fn drop(&mut self) {
         unsafe {
             let native_device = self.shared_pipeline.device().native();
@@ -62,7 +62,7 @@ impl<'a,T> Drop for Compute<'a,T> {
     }
 }
 
-impl<'a,T: ShaderParameterSet> AddToCommandBuffer for Compute<'a,T> {
+impl<'a, T: ShaderParameterSet> AddToCommandBuffer for Compute<'a, T> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
         let native_device = self.shared_pipeline.device().native();
         let native_command_buffer = builder.native_command_buffer();

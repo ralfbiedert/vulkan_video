@@ -96,13 +96,13 @@ impl ImageInfo {
 }
 
 pub(crate) struct ImageShared<'a> {
-	shared_device: &'a DeviceShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
 
 impl<'a> ImageShared<'a> {
-	fn new(shared_device: &'a DeviceShared<'a>, info: &ImageInfo) -> Result<Self, Error> {
+    fn new(shared_device: &'a DeviceShared<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let create_image = ImageCreateInfo::default()
@@ -128,7 +128,11 @@ impl<'a> ImageShared<'a> {
         }
     }
 
-    fn new_video_target(shared_device: &'a DeviceShared<'a>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    fn new_video_target(
+        shared_device: &'a DeviceShared<'a>,
+        info: &ImageInfo,
+        stream_inspector: &H264StreamInspector,
+    ) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         unsafe {

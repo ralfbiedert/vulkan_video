@@ -12,12 +12,12 @@ use ash::vk::{
 use std::ptr::{addr_of, addr_of_mut, null};
 
 pub(crate) struct VideoSessionParametersShared<'a> {
-	shared_session: &'a VideoSessionShared<'a>,
+    shared_session: &'a VideoSessionShared<'a>,
     native_parameters: VideoSessionParametersKHR,
 }
 
 impl<'a> VideoSessionParametersShared<'a> {
-	pub fn new(shared_session: &'a VideoSessionShared<'a>, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    pub fn new(shared_session: &'a VideoSessionShared<'a>, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_session = shared_session.native();
         let shared_device = shared_session.device();
         let native_device = shared_device.native();

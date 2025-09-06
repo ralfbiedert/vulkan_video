@@ -43,14 +43,14 @@ impl BufferInfo {
 }
 
 pub(crate) struct BufferShared<'a> {
-	shared_device: &'a DeviceShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     shared_allocation: &'a AllocationShared<'a>,
     device_buffer: vk::Buffer,
     buffer_info: BufferInfo,
 }
 
 impl<'a> BufferShared<'a> {
-	pub fn new(shared_allocation: &'a AllocationShared<'a>, buffer_info: &BufferInfo) -> Result<Self, Error> {
+    pub fn new(shared_allocation: &'a AllocationShared<'a>, buffer_info: &BufferInfo) -> Result<Self, Error> {
         let shared_device = shared_allocation.device();
         let native_device = shared_device.native();
 
@@ -224,25 +224,23 @@ impl<'a> Buffer<'a> {
     pub fn new(allocation: &'a Allocation<'a>, info: &BufferInfo) -> Result<Self, Error> {
         let buffer_shared = BufferShared::new(allocation.shared(), info)?;
 
-        Ok(Self {
-            shared: buffer_shared,
-        })
+        Ok(Self { shared: buffer_shared })
     }
 
-    pub fn new_video_decode(allocation: &'a Allocation<'a>, info: &BufferInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    pub fn new_video_decode(
+        allocation: &'a Allocation<'a>,
+        info: &BufferInfo,
+        stream_inspector: &H264StreamInspector,
+    ) -> Result<Self, Error> {
         let buffer_shared = BufferShared::new_video_decode(allocation.shared(), info, stream_inspector)?;
 
-        Ok(Self {
-            shared: buffer_shared,
-        })
+        Ok(Self { shared: buffer_shared })
     }
 
     pub fn external(allocation: &'a Allocation<'a>, pointer: *mut c_void, info: &BufferInfo) -> Result<Self, Error> {
         let buffer_shared = BufferShared::external(allocation.shared(), pointer, info)?;
 
-        Ok(Self {
-            shared: buffer_shared,
-        })
+        Ok(Self { shared: buffer_shared })
     }
 
     pub fn size(&self) -> u64 {

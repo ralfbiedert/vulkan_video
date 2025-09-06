@@ -7,7 +7,7 @@ use ash::vk::{DependencyFlags, PipelineStageFlags, WHOLE_SIZE};
 
 /// Fills a buffer with a fixed value.
 pub struct FillBuffer<'a> {
-	buffer: &'a BufferShared<'a>,
+    buffer: &'a BufferShared<'a>,
     value: u32,
 }
 

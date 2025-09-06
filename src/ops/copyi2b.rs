@@ -6,8 +6,8 @@ use ash::vk::{BufferImageCopy, ImageAspectFlags, ImageLayout, ImageSubresourceLa
 
 /// Performs an image-to-buffer copy operation.
 pub struct CopyImage2Buffer<'a> {
-	image: &'a ImageShared<'a>,
-	buffer: &'a BufferShared<'a>,
+    image: &'a ImageShared<'a>,
+    buffer: &'a BufferShared<'a>,
     aspect_mask: ImageAspectFlags,
 }
 

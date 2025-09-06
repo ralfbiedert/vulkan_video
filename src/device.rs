@@ -93,17 +93,13 @@ impl<'a> Device<'a> {
     pub fn new_with_families(physical_device: &'a PhysicalDevice, queue_families: &[u32]) -> Result<Self, Error> {
         let device_shared = DeviceShared::new_with_families(physical_device.shared(), queue_families)?;
 
-        Ok(Self {
-            shared: device_shared,
-        })
+        Ok(Self { shared: device_shared })
     }
 
     pub fn new(physical_device: &'a PhysicalDevice) -> Result<Self, Error> {
         let device_shared = DeviceShared::new(physical_device.shared())?;
 
-        Ok(Self {
-            shared: device_shared,
-        })
+        Ok(Self { shared: device_shared })
     }
 
     pub(crate) fn shared(&self) -> &DeviceShared {
