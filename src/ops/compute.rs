@@ -21,7 +21,7 @@ pub struct Compute<T> {
 }
 
 impl<T: ShaderParameterSet> Compute<T> {
-    fn new(pipeline: &Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
+    pub fn new(pipeline: &Pipeline<T>, params: T, dispatch_groups: (u32, u32, u32)) -> Result<Self, Error> {
         let shared_pipeline = pipeline.shared();
         let shared_parameters = shared_pipeline.parameters();
         let native_device = shared_pipeline.device().native();
