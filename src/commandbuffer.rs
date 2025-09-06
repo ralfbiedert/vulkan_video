@@ -66,7 +66,6 @@ impl<'a> CommandBuffer<'a> {
         Ok(Self { shared })
     }
 
-    #[expect(unused)]
     pub(crate) fn native(&self) -> ash::vk::CommandBuffer {
         self.shared.native()
     }

@@ -63,7 +63,6 @@ impl<'a> Device<'a> {
         Self::new_with_families(physical_device, &infos)
     }
 
-    #[expect(unused)]
     pub(crate) fn physical_device(&self) -> &PhysicalDevice<'_> {
         &self.physical_device
     }
