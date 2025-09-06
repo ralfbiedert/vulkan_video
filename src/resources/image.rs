@@ -171,7 +171,6 @@ impl UnboundImageShared {
 
         Ok(ImageShared {
             shared_device: self.shared_device,
-            shared_allocation,
             native_image,
             info: self.info,
         })
@@ -194,7 +193,6 @@ impl UnboundImageShared {
 
 pub(crate) struct ImageShared {
     shared_device: Arc<DeviceShared>,
-    shared_allocation: Arc<AllocationShared>,
     native_image: ash::vk::Image,
     info: ImageInfo,
 }
