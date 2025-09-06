@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ash::vk::{
     AccessFlags, BufferMemoryBarrier, DependencyFlags, DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorPoolCreateInfo,
     DescriptorPoolSize, DescriptorSet, DescriptorSetAllocateInfo, DescriptorType, ImageAspectFlags, ImageLayout, ImageMemoryBarrier,
@@ -13,7 +11,7 @@ use crate::shader::{ParameterType, Pipeline, PipelineShared, ShaderParameterSet}
 
 /// Run a compute shader.
 pub struct Compute<T> {
-    shared_pipeline: Arc<PipelineShared<T>>,
+    shared_pipeline: PipelineShared<T>,
     dispatch_groups: (u32, u32, u32),
     native_descriptor_pool: DescriptorPool,
     native_descriptor_sets: Vec<DescriptorSet>,

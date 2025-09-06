@@ -3,12 +3,11 @@ use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared};
 use ash::vk::BufferCopy;
-use std::sync::Arc;
 
 /// Performs a buffer-to-buffer copy operation.
 pub struct CopyBuffer2Buffer {
-    source: Arc<BufferShared>,
-    destination: Arc<BufferShared>,
+    source: BufferShared,
+    destination: BufferShared,
     size: u64,
 }
 

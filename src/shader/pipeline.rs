@@ -7,19 +7,18 @@ use crate::shader::ShaderParameterSet;
 use ash::vk::{
     ComputePipelineCreateInfo, PipelineCache, PipelineLayout, PipelineLayoutCreateInfo, PipelineShaderStageCreateInfo, ShaderStageFlags,
 };
-use std::sync::Arc;
 
 #[expect(unused)]
 pub(crate) struct PipelineShared<T> {
-    shared_device: Arc<DeviceShared>,
-    shared_shader: Arc<ShaderShared<T>>,
-    shared_parameters: Arc<ParametersShared<T>>,
+    shared_device: DeviceShared,
+    shared_shader: ShaderShared<T>,
+    shared_parameters: ParametersShared<T>,
     native_layout: PipelineLayout,
     native_pipeline: ash::vk::Pipeline,
 }
 
 impl<T: ShaderParameterSet> PipelineShared<T> {
-    pub(crate) fn new(shared_device: Arc<DeviceShared>, shared_shader: Arc<ShaderShared<T>>) -> Result<Self, Error> {
+    pub(crate) fn new(shared_device: DeviceShared, shared_shader: ShaderShared<T>) -> Result<Self, Error> {
         let native_device = shared_device.native();
         let shared_parameters = shared_shader.parameters();
 
@@ -66,7 +65,7 @@ impl<T: ShaderParameterSet> PipelineShared<T> {
         }
     }
 
-    pub(crate) fn parameters(&self) -> Arc<ParametersShared<T>> {
+    pub(crate) fn parameters(&self) -> ParametersShared<T> {
         self.shared_parameters.clone()
     }
 }
@@ -80,7 +79,7 @@ impl<T> PipelineShared<T> {
         self.native_layout
     }
 
-    pub(crate) fn device(&self) -> Arc<DeviceShared> {
+    pub(crate) fn device(&self) -> DeviceShared {
         self.shared_device.clone()
     }
 }
@@ -99,18 +98,18 @@ impl<T> Drop for PipelineShared<T> {
 /// Configuration how exactly a [Shader](Shader) should be invoked.
 #[allow(unused)]
 pub struct Pipeline<T: ShaderParameterSet> {
-    shared: Arc<PipelineShared<T>>,
+    shared: PipelineShared<T>,
 }
 
 impl<T: ShaderParameterSet> Pipeline<T> {
     pub fn new(device: &Device, shader: &Shader<T>) -> Result<Self, Error> {
         let shared = PipelineShared::new(device.shared(), shader.shared())?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
     #[allow(unused)]
-    pub(crate) fn shared(&self) -> Arc<PipelineShared<T>> {
+    pub(crate) fn shared(&self) -> PipelineShared<T> {
         self.shared.clone()
     }
 

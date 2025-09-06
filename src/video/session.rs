@@ -16,7 +16,6 @@ use ash::vk::{
     VideoSessionCreateInfoKHR, VideoSessionKHR, VideoSessionMemoryRequirementsKHR,
 };
 use std::ptr::{null, null_mut};
-use std::sync::Arc;
 
 pub(crate) struct VideoDecodeCapabilities {
     flags: VideoDecodeCapabilityFlagsKHR,
@@ -33,7 +32,7 @@ impl VideoDecodeCapabilities {
 }
 
 pub(crate) struct VideoSessionShared {
-    shared_device: Arc<DeviceShared>,
+    shared_device: DeviceShared,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
     // native_video_instance_fns: KhrVideoQueueInstanceFn,
@@ -223,7 +222,7 @@ impl VideoSessionShared {
     //     self.native_video_instance_fns.clone()
     // }
 
-    pub(crate) fn device(&self) -> Arc<DeviceShared> {
+    pub(crate) fn device(&self) -> DeviceShared {
         self.shared_device.clone()
     }
 
@@ -245,17 +244,17 @@ impl Drop for VideoSessionShared {
 
 /// Vulkan-internal state needed for video ops.
 pub struct VideoSession {
-    shared: Arc<VideoSessionShared>,
+    shared: VideoSessionShared,
 }
 
 impl VideoSession {
     pub fn new(device: &Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared = VideoSessionShared::new(device, stream_inspector)?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> Arc<VideoSessionShared> {
+    pub(crate) fn shared(&self) -> VideoSessionShared {
         self.shared.clone()
     }
 }

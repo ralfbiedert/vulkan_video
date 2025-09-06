@@ -3,7 +3,6 @@ use crate::error;
 use crate::error::{Error, Variant};
 use crate::instance::{Instance, InstanceShared};
 use ash::vk::{MemoryPropertyFlags, PhysicalDeviceMemoryProperties, QueueFlags};
-use std::sync::Arc;
 
 /// Provides logical information about vulkan queue families.
 pub struct QueueFamilyInfos {
@@ -100,13 +99,13 @@ impl HeapInfos {
 
 pub(crate) struct PhysicalDeviceShared {
     native_physical_device: ash::vk::PhysicalDevice,
-    shared_instance: Arc<InstanceShared>,
+    shared_instance: InstanceShared,
     queue_family_infos: QueueFamilyInfos,
     heap_infos: HeapInfos,
 }
 
 impl PhysicalDeviceShared {
-    pub fn new_any(shared_instance: Arc<InstanceShared>) -> Result<Self, Error> {
+    pub fn new_any(shared_instance: InstanceShared) -> Result<Self, Error> {
         let native_instance = shared_instance.native();
 
         unsafe {
@@ -129,7 +128,7 @@ impl PhysicalDeviceShared {
         self.native_physical_device
     }
 
-    pub(crate) fn instance(&self) -> Arc<InstanceShared> {
+    pub(crate) fn instance(&self) -> InstanceShared {
         self.shared_instance.clone()
     }
 
@@ -144,17 +143,17 @@ impl PhysicalDeviceShared {
 
 /// Some GPU in your system.
 pub struct PhysicalDevice {
-    shared: Arc<PhysicalDeviceShared>,
+    shared: PhysicalDeviceShared,
 }
 
 impl PhysicalDevice {
     pub fn new_any(instance: &Instance) -> Result<Self, Error> {
         let shared = PhysicalDeviceShared::new_any(instance.shared())?;
 
-        Ok(Self { shared: Arc::new(shared) })
+        Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> Arc<PhysicalDeviceShared> {
+    pub(crate) fn shared(&self) -> PhysicalDeviceShared {
         self.shared.clone()
     }
 
