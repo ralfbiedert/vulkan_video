@@ -61,7 +61,7 @@ impl AllocationShared {
         }
     }
 
-    #[allow(unused)]
+    #[expect(unused)]
     pub(crate) fn instance(&self) -> Arc<InstanceShared> {
         self.shared_instance.clone()
     }

@@ -9,7 +9,7 @@ use ash::vk::{
 };
 use std::sync::Arc;
 
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) struct PipelineShared<T> {
     shared_device: Arc<DeviceShared>,
     shared_shader: Arc<ShaderShared<T>>,

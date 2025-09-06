@@ -63,7 +63,7 @@ impl Default for InstanceInfo {
     }
 }
 
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) struct InstanceShared {
     instance: ash::Instance,
     entry: ash::Entry,
