@@ -28,20 +28,20 @@ impl DecodeInfo {
 }
 
 /// Decode a H.264 video frame.
-pub struct DecodeH264 {
-    shared_parameters: VideoSessionParametersShared,
-    shared_buffer: BufferShared,
-    shared_image_view: ImageViewShared,
-    shared_ref_view: ImageViewShared,
+pub struct DecodeH264<'a> {
+	shared_parameters: &'a VideoSessionParametersShared<'a>,
+	shared_buffer: &'a BufferShared<'a>,
+	shared_image_view: &'a ImageViewShared<'a>,
+	shared_ref_view: &'a ImageViewShared<'a>,
     decode_info: DecodeInfo,
 }
 
-impl DecodeH264 {
+impl<'a> DecodeH264<'a> {
     pub fn new(
-        buffer: &Buffer,
-        video_session_parameters: &VideoSessionParameters,
-        target_view: &ImageView,
-        ref_view: &ImageView,
+        buffer: &'a Buffer,
+        video_session_parameters: &'a VideoSessionParameters,
+        target_view: &'a ImageView,
+        ref_view: &'a ImageView,
         decode_info: &DecodeInfo,
     ) -> Self {
         Self {
@@ -54,7 +54,7 @@ impl DecodeH264 {
     }
 }
 
-impl AddToCommandBuffer for DecodeH264 {
+impl<'a> AddToCommandBuffer for DecodeH264<'a> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
         let shared_video_session = self.shared_parameters.video_session();
 

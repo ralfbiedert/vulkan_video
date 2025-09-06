@@ -46,14 +46,14 @@ impl ImageViewInfo {
     }
 }
 
-pub(crate) struct ImageViewShared {
-    shared_image: ImageShared,
-    shared_device: DeviceShared,
+pub(crate) struct ImageViewShared<'a> {
+	shared_image: &'a ImageShared<'a>,
+    shared_device: &'a DeviceShared<'a>,
     native_view: ash::vk::ImageView,
 }
 
-impl ImageViewShared {
-    pub fn new(shared_image: ImageShared, info: &ImageViewInfo) -> Result<Self, Error> {
+impl<'a> ImageViewShared<'a> {
+	pub fn new(shared_image: &'a ImageShared<'a>, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_device = shared_image.device();
 
         let native_image = shared_image.native();
@@ -85,12 +85,12 @@ impl ImageViewShared {
         self.native_view
     }
 
-    pub(crate) fn image(&self) -> ImageShared {
-        self.shared_image.clone()
+    pub(crate) fn image(&self) -> &ImageShared {
+        &self.shared_image
     }
 }
 
-impl Drop for ImageViewShared {
+impl<'a> Drop for ImageViewShared<'a> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
 
@@ -101,12 +101,12 @@ impl Drop for ImageViewShared {
 }
 
 /// View of an [`Image`](Image).
-pub struct ImageView {
-    shared_view: ImageViewShared,
+pub struct ImageView<'a> {
+    shared_view: ImageViewShared<'a>,
 }
 
-impl ImageView {
-    pub fn new(image: &Image, info: &ImageViewInfo) -> Result<Self, Error> {
+impl<'a> ImageView<'a> {
+    pub fn new(image: &'a Image<'a>, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_view = ImageViewShared::new(image.shared(), info)?;
 
         Ok(Self {
@@ -114,8 +114,8 @@ impl ImageView {
         })
     }
 
-    pub(crate) fn shared(&self) -> ImageViewShared {
-        self.shared_view.clone()
+    pub(crate) fn shared(&self) -> &ImageViewShared {
+        &self.shared_view
     }
 
     pub(crate) fn native(&self) -> ash::vk::ImageView {

@@ -6,13 +6,13 @@ use ash::vk;
 use ash::vk::{DependencyFlags, PipelineStageFlags, WHOLE_SIZE};
 
 /// Fills a buffer with a fixed value.
-pub struct FillBuffer {
-    buffer: BufferShared,
+pub struct FillBuffer<'a> {
+	buffer: &'a BufferShared<'a>,
     value: u32,
 }
 
-impl FillBuffer {
-    pub fn new(buffer: &Buffer, value: u32) -> Self {
+impl<'a> FillBuffer<'a> {
+    pub fn new(buffer: &'a Buffer, value: u32) -> Self {
         Self {
             buffer: buffer.shared(),
             value,
@@ -20,7 +20,7 @@ impl FillBuffer {
     }
 }
 
-impl AddToCommandBuffer for FillBuffer {
+impl<'a> AddToCommandBuffer for FillBuffer<'a> {
     fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
         let native_device = self.buffer.device().native();
         let native_buffer = self.buffer.native();

@@ -12,16 +12,16 @@ impl MemoryTypeIndex {
     }
 }
 
-pub(crate) struct AllocationShared {
-    shared_instance: InstanceShared,
-    shared_device: DeviceShared,
+pub(crate) struct AllocationShared<'a> {
+    shared_instance: &'a InstanceShared,
+    shared_device: &'a DeviceShared<'a>,
     device_memory: DeviceMemory,
     // size: u64,
     // type_index: MemoryTypeIndex,
 }
 
-impl AllocationShared {
-    pub fn new(shared_device: DeviceShared, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
+impl<'a> AllocationShared<'a> {
+	pub fn new(shared_device: &'a DeviceShared<'a>, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let native_device = shared_device.native();
         let info = MemoryAllocateInfo::default().allocation_size(size).memory_type_index(type_index.0);
         let device_memory = unsafe { native_device.allocate_memory(&info, None)? };
@@ -35,7 +35,7 @@ impl AllocationShared {
         })
     }
 
-    pub fn new_external(shared_device: DeviceShared, external: *mut c_void, size: u64) -> Result<Self, Error> {
+    pub fn new_external(shared_device: &'a DeviceShared<'a>, external: *mut c_void, size: u64) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let mut todo_bad = ImportMemoryFdInfoKHR::default()
@@ -61,12 +61,12 @@ impl AllocationShared {
     }
 
     #[expect(unused)]
-    pub(crate) fn instance(&self) -> InstanceShared {
-        self.shared_instance.clone()
+    pub(crate) fn instance(&self) -> &InstanceShared {
+        &self.shared_instance
     }
 
-    pub(crate) fn device(&self) -> DeviceShared {
-        self.shared_device.clone()
+    pub(crate) fn device(&self) -> &DeviceShared {
+        &self.shared_device
     }
 
     pub(crate) fn native(&self) -> DeviceMemory {
@@ -74,7 +74,7 @@ impl AllocationShared {
     }
 }
 
-impl Drop for AllocationShared {
+impl<'a> Drop for AllocationShared<'a> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
 
@@ -85,12 +85,12 @@ impl Drop for AllocationShared {
 }
 
 /// An allocation on a host or device.
-pub struct Allocation {
-    shared: AllocationShared,
+pub struct Allocation<'a> {
+    shared: AllocationShared<'a>,
 }
 
-impl Allocation {
-    pub fn new(device: &Device, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
+impl<'a> Allocation<'a> {
+    pub fn new(device: &'a Device, size: u64, type_index: MemoryTypeIndex) -> Result<Self, Error> {
         let allocation_shared = AllocationShared::new(device.shared(), size, type_index)?;
 
         Ok(Self {
@@ -98,7 +98,7 @@ impl Allocation {
         })
     }
 
-    pub fn new_external(device: &Device, external: *mut c_void, size: u64) -> Result<Self, Error> {
+    pub fn new_external(device: &'a Device, external: *mut c_void, size: u64) -> Result<Self, Error> {
         let allocation_shared = AllocationShared::new_external(device.shared(), external, size)?;
 
         Ok(Self {
@@ -106,8 +106,8 @@ impl Allocation {
         })
     }
 
-    pub(crate) fn shared(&self) -> AllocationShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &AllocationShared {
+        &self.shared
     }
 
     pub(crate) fn native(&self) -> DeviceMemory {

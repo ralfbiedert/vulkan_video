@@ -31,8 +31,8 @@ impl VideoDecodeCapabilities {
     }
 }
 
-pub(crate) struct VideoSessionShared {
-    shared_device: DeviceShared,
+pub(crate) struct VideoSessionShared<'a> {
+	shared_device: &'a DeviceShared<'a>,
     native_queue_fns: KhrVideoQueueDeviceFn,
     native_decode_queue_fns: KhrVideoDecodeQueueDeviceFn,
     // native_video_instance_fns: KhrVideoQueueInstanceFn,
@@ -41,8 +41,8 @@ pub(crate) struct VideoSessionShared {
     decode_capabilities: VideoDecodeCapabilities,
 }
 
-impl VideoSessionShared {
-    pub fn new(device: &Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+impl<'a> VideoSessionShared<'a> {
+    pub fn new(device: &'a Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared_device = device.shared();
         let shared_instance = shared_device.instance();
 
@@ -222,8 +222,8 @@ impl VideoSessionShared {
     //     self.native_video_instance_fns.clone()
     // }
 
-    pub(crate) fn device(&self) -> DeviceShared {
-        self.shared_device.clone()
+    pub(crate) fn device(&self) -> &DeviceShared {
+        &self.shared_device
     }
 
     pub(crate) fn decode_capabilities(&self) -> &VideoDecodeCapabilities {
@@ -231,7 +231,7 @@ impl VideoSessionShared {
     }
 }
 
-impl Drop for VideoSessionShared {
+impl<'a> Drop for VideoSessionShared<'a> {
     fn drop(&mut self) {
         let native_device = self.shared_device.native();
         let destroy_video_session_khr = self.native_queue_fns.destroy_video_session_khr;
@@ -243,19 +243,19 @@ impl Drop for VideoSessionShared {
 }
 
 /// Vulkan-internal state needed for video ops.
-pub struct VideoSession {
-    shared: VideoSessionShared,
+pub struct VideoSession<'a> {
+    shared: VideoSessionShared<'a>,
 }
 
-impl VideoSession {
-    pub fn new(device: &Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+impl<'a> VideoSession<'a> {
+    pub fn new(device: &'a Device, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared = VideoSessionShared::new(device, stream_inspector)?;
 
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> VideoSessionShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &VideoSessionShared {
+        &self.shared
     }
 }
 

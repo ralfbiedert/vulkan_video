@@ -42,15 +42,15 @@ impl BufferInfo {
     }
 }
 
-pub(crate) struct BufferShared {
-    shared_device: DeviceShared,
-    shared_allocation: AllocationShared,
+pub(crate) struct BufferShared<'a> {
+	shared_device: &'a DeviceShared<'a>,
+    shared_allocation: &'a AllocationShared<'a>,
     device_buffer: vk::Buffer,
     buffer_info: BufferInfo,
 }
 
-impl BufferShared {
-    pub fn new(shared_allocation: AllocationShared, buffer_info: &BufferInfo) -> Result<Self, Error> {
+impl<'a> BufferShared<'a> {
+	pub fn new(shared_allocation: &'a AllocationShared<'a>, buffer_info: &BufferInfo) -> Result<Self, Error> {
         let shared_device = shared_allocation.device();
         let native_device = shared_device.native();
 
@@ -78,7 +78,7 @@ impl BufferShared {
     }
 
     pub fn new_video_decode(
-        shared_allocation: AllocationShared,
+        shared_allocation: &'a AllocationShared<'a>,
         buffer_info: &BufferInfo,
         stream_inspector: &H264StreamInspector,
     ) -> Result<Self, Error> {
@@ -118,7 +118,7 @@ impl BufferShared {
         }
     }
 
-    pub fn external(shared_allocation: AllocationShared, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
+    pub fn external(shared_allocation: &'a AllocationShared<'a>, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
         let shared_device = shared_allocation.device();
         let native_device = shared_device.native();
 
@@ -200,12 +200,12 @@ impl BufferShared {
         self.device_buffer
     }
 
-    pub(crate) fn device(&self) -> DeviceShared {
-        self.shared_device.clone()
+    pub(crate) fn device(&self) -> &DeviceShared {
+        &self.shared_device
     }
 }
 
-impl Drop for BufferShared {
+impl<'a> Drop for BufferShared<'a> {
     fn drop(&mut self) {
         let device = self.shared_device.native();
 
@@ -216,12 +216,12 @@ impl Drop for BufferShared {
 }
 
 /// A 1-dimensional memory block, usually on the GPU.
-pub struct Buffer {
-    shared: BufferShared,
+pub struct Buffer<'a> {
+    shared: BufferShared<'a>,
 }
 
-impl Buffer {
-    pub fn new(allocation: &Allocation, info: &BufferInfo) -> Result<Self, Error> {
+impl<'a> Buffer<'a> {
+    pub fn new(allocation: &'a Allocation<'a>, info: &BufferInfo) -> Result<Self, Error> {
         let buffer_shared = BufferShared::new(allocation.shared(), info)?;
 
         Ok(Self {
@@ -229,7 +229,7 @@ impl Buffer {
         })
     }
 
-    pub fn new_video_decode(allocation: &Allocation, info: &BufferInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+    pub fn new_video_decode(allocation: &'a Allocation<'a>, info: &BufferInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let buffer_shared = BufferShared::new_video_decode(allocation.shared(), info, stream_inspector)?;
 
         Ok(Self {
@@ -237,7 +237,7 @@ impl Buffer {
         })
     }
 
-    pub fn external(allocation: &Allocation, pointer: *mut c_void, info: &BufferInfo) -> Result<Self, Error> {
+    pub fn external(allocation: &'a Allocation<'a>, pointer: *mut c_void, info: &BufferInfo) -> Result<Self, Error> {
         let buffer_shared = BufferShared::external(allocation.shared(), pointer, info)?;
 
         Ok(Self {
@@ -250,8 +250,8 @@ impl Buffer {
     }
 
     #[allow(unused)]
-    pub(crate) fn shared(&self) -> BufferShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &BufferShared {
+        &self.shared
     }
 
     pub fn upload(&self, data: &[u8]) -> Result<(), Error> {

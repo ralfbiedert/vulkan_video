@@ -11,15 +11,16 @@ use ash::vk::{
 };
 use std::ptr::{addr_of, addr_of_mut, null};
 
-pub(crate) struct VideoSessionParametersShared {
-    shared_session: VideoSessionShared,
+pub(crate) struct VideoSessionParametersShared<'a> {
+	shared_session: &'a VideoSessionShared<'a>,
     native_parameters: VideoSessionParametersKHR,
 }
 
-impl VideoSessionParametersShared {
-    pub fn new(shared_session: VideoSessionShared, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+impl<'a> VideoSessionParametersShared<'a> {
+	pub fn new(shared_session: &'a VideoSessionShared<'a>, _stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_session = shared_session.native();
-        let native_device = shared_session.device().native();
+        let shared_device = shared_session.device();
+        let native_device = shared_device.native();
         let native_queue_fns = shared_session.queue_fns();
 
         let hrd = StdVideoH264HrdParameters {
@@ -162,12 +163,12 @@ impl VideoSessionParametersShared {
         self.native_parameters
     }
 
-    pub(crate) fn video_session(&self) -> VideoSessionShared {
-        self.shared_session.clone()
+    pub(crate) fn video_session(&self) -> &VideoSessionShared {
+        &self.shared_session
     }
 }
 
-impl Drop for VideoSessionParametersShared {
+impl<'a> Drop for VideoSessionParametersShared<'a> {
     fn drop(&mut self) {
         let queue_fns = self.shared_session.queue_fns();
         let native_device = self.shared_session.device().native();
@@ -181,19 +182,19 @@ impl Drop for VideoSessionParametersShared {
 }
 
 /// Vulkan-internal state needed for operating on a single video frame.
-pub struct VideoSessionParameters {
-    shared: VideoSessionParametersShared,
+pub struct VideoSessionParameters<'a> {
+    shared: VideoSessionParametersShared<'a>,
 }
 
-impl VideoSessionParameters {
-    pub fn new(session: &VideoSession, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
+impl<'a> VideoSessionParameters<'a> {
+    pub fn new(session: &'a VideoSession, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let shared = VideoSessionParametersShared::new(session.shared(), stream_inspector)?;
 
         Ok(Self { shared })
     }
 
-    pub(crate) fn shared(&self) -> VideoSessionParametersShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &VideoSessionParametersShared {
+        &self.shared
     }
 }
 

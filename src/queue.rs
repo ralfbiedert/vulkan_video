@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use ash::vk::{CommandBufferBeginInfo, CommandBufferResetFlags, FenceCreateFlags, FenceCreateInfo, SubmitInfo};
 
-use crate::commandbuffer::{CommandBuffer, CommandBufferShared};
+use crate::commandbuffer::CommandBuffer;
 use crate::device::{Device, DeviceShared};
 use crate::error::Error;
 
@@ -22,14 +22,14 @@ impl<'a> CommandBuilder<'a> {
     }
 }
 
-struct QueueShared {
-    shared_device: DeviceShared,
+struct QueueShared<'a> {
+	shared_device: &'a DeviceShared<'a>,
     native_queue: ash::vk::Queue,
     queue_family_index: u32,
 }
 
-impl QueueShared {
-    fn new(shared_device: DeviceShared, queue_family_index: u32, index: u32) -> Result<Self, Error> {
+impl<'a> QueueShared<'a> {
+    fn new(shared_device: &'a DeviceShared<'a>, queue_family_index: u32, index: u32) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         unsafe {
@@ -45,7 +45,7 @@ impl QueueShared {
 
     pub fn build_and_submit(
         &self,
-        command_buffer: CommandBufferShared,
+        command_buffer: &CommandBuffer,
         f: impl FnOnce(&mut CommandBuilder) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let native_device = self.shared_device.native();
@@ -82,12 +82,12 @@ impl QueueShared {
 }
 
 /// GPU execution unit to run your command buffers.
-pub struct Queue {
-    shared: QueueShared,
+pub struct Queue<'a> {
+    shared: QueueShared<'a>,
 }
 
-impl Queue {
-    pub fn new(device: &Device, family: u32, index: u32) -> Result<Self, Error> {
+impl<'a> Queue<'a> {
+    pub fn new(device: &'a Device, family: u32, index: u32) -> Result<Self, Error> {
         let shared = QueueShared::new(device.shared(), family, index)?;
 
         Ok(Self { shared })
@@ -98,7 +98,7 @@ impl Queue {
         command_buffer: &CommandBuffer,
         f: impl FnOnce(&mut CommandBuilder) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        self.shared.build_and_submit(command_buffer.shared(), f)
+        self.shared.build_and_submit(command_buffer, f)
     }
 }
 

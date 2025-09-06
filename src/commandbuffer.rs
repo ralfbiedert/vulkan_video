@@ -3,14 +3,14 @@ use crate::error;
 use crate::error::{Error, Variant};
 use ash::vk::{CommandBufferAllocateInfo, CommandBufferLevel, CommandPoolCreateFlags, CommandPoolCreateInfo};
 
-pub(crate) struct CommandBufferShared {
-    shared_device: DeviceShared,
+pub(crate) struct CommandBufferShared<'a> {
+	shared_device: &'a DeviceShared<'a>,
     native_command_pool: ash::vk::CommandPool,
     native_command_buffer: ash::vk::CommandBuffer,
 }
 
-impl CommandBufferShared {
-    pub fn new(shared_device: DeviceShared, queue_family_index: u32) -> Result<Self, Error> {
+impl<'a> CommandBufferShared<'a> {
+	pub fn new(shared_device: &'a DeviceShared<'a>, queue_family_index: u32) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
         let command_pool_create_info = CommandPoolCreateInfo::default()
@@ -43,7 +43,7 @@ impl CommandBufferShared {
     }
 }
 
-impl Drop for CommandBufferShared {
+impl<'a> Drop for CommandBufferShared<'a> {
     fn drop(&mut self) {
         let device = self.shared_device.native();
 
@@ -55,12 +55,12 @@ impl Drop for CommandBufferShared {
 }
 
 /// Stores commands related to a specific queue family.
-pub struct CommandBuffer {
-    shared: CommandBufferShared,
+pub struct CommandBuffer<'a> {
+    shared: CommandBufferShared<'a>,
 }
 
-impl CommandBuffer {
-    pub fn new(device: &Device, queue_family_index: u32) -> Result<Self, Error> {
+impl<'a> CommandBuffer<'a> {
+    pub fn new(device: &'a Device, queue_family_index: u32) -> Result<Self, Error> {
         let shared = CommandBufferShared::new(device.shared(), queue_family_index)?;
 
         Ok(Self { shared })
@@ -71,8 +71,8 @@ impl CommandBuffer {
         self.shared.native()
     }
 
-    pub(crate) fn shared(&self) -> CommandBufferShared {
-        self.shared.clone()
+    pub(crate) fn shared(&self) -> &CommandBufferShared {
+        &self.shared
     }
 }
 
