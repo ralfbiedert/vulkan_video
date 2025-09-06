@@ -47,13 +47,13 @@ impl ImageViewInfo {
 
 /// View of an [`Image`](Image).
 pub struct ImageView<'a> {
-    shared_image: &'a Image<'a>,
+    shared_image: &'a Image<'a, true>,
     shared_device: &'a Device<'a>,
     native_view: ash::vk::ImageView,
 }
 
 impl<'a> ImageView<'a> {
-    pub fn new(shared_image: &'a Image<'a>, info: &ImageViewInfo) -> Result<Self, Error> {
+    pub fn new(shared_image: &'a Image<'a, true>, info: &ImageViewInfo) -> Result<Self, Error> {
         let shared_device = shared_image.device();
 
         let native_image = shared_image.native();
@@ -85,7 +85,7 @@ impl<'a> ImageView<'a> {
         self.native_view
     }
 
-    pub(crate) fn image(&self) -> &Image<'_> {
+    pub(crate) fn image(&self) -> &Image<'_, true> {
         &self.shared_image
     }
 
@@ -113,7 +113,7 @@ mod test {
     use crate::error::Error;
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
-    use crate::resources::{ImageInfo, ImageView, ImageViewInfo, UnboundImage};
+    use crate::resources::{Image, ImageInfo, ImageView, ImageViewInfo};
 
     #[test]
     #[cfg(not(miri))]
@@ -132,7 +132,7 @@ mod test {
             .tiling(ImageTiling::OPTIMAL)
             .extent(Extent3D::default().width(512).height(512).depth(1));
 
-        let image = UnboundImage::new(&device, &image_info)?;
+        let image = Image::new(&device, &image_info)?;
         let heap_type = image.memory_requirement().any_heap();
         let allocation = Allocation::new(&device, 1024 * 1024, heap_type)?;
 

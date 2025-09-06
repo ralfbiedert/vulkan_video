@@ -95,14 +95,17 @@ impl ImageInfo {
     }
 }
 
-/// An `Image` that has yet to be bound.  Call .bind() to construct an `Image`.
-pub struct UnboundImage<'a> {
+/// A often 2D image, usually stored on the GPU.
+pub struct Image<'a, const BOUND: bool> {
     device: &'a Device<'a>,
     native_image: ash::vk::Image,
     info: ImageInfo,
+    // As long as this object inherits the lifetime 'a, that's good enough.
+    // We never need to access the allocation information from this object.
+    // allocation: &'a Allocation<'a>,
 }
 
-impl<'a> UnboundImage<'a> {
+impl<'a> Image<'a, false> {
     pub fn new(device: &'a Device<'a>, info: &ImageInfo) -> Result<Self, Error> {
         let native_device = device.native();
 
@@ -159,16 +162,17 @@ impl<'a> UnboundImage<'a> {
     }
 
     #[must_use]
-    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a>, Error> {
-        let native_device = self.device.native();
+    pub fn bind(self, allocation: &'a Allocation<'a>) -> Result<Image<'a, true>, Error> {
         let native_image = self.native_image;
+        let native_device = self.device.native();
         let native_allocation = allocation.native();
 
         unsafe {
             native_device.bind_image_memory(native_image, native_allocation, self.info.bind_offset)?;
         }
 
-        Ok(Image { image: self })
+        // SAFETY: the image is now bound
+        Ok(unsafe { core::mem::transmute(self) })
     }
 
     pub fn memory_requirement(&self) -> MemoryRequirements {
@@ -186,34 +190,26 @@ impl<'a> UnboundImage<'a> {
     }
 }
 
-/// A often 2D image, usually stored on the GPU.
-pub struct Image<'a> {
-    image: UnboundImage<'a>,
-    // As long as this object inherits the lifetime 'a, that's good enough.
-    // We never need to access the allocation information from this object.
-    // allocation: &'a Allocation<'a>,
-}
-
-impl<'a> Image<'a> {
+impl<'a> Image<'a, true> {
     pub(crate) fn native(&self) -> ash::vk::Image {
-        self.image.native_image
+        self.native_image
     }
 
     pub(crate) fn device(&self) -> &Device<'_> {
-        &self.image.device
+        &self.device
     }
 
     pub(crate) fn info(&self) -> ImageInfo {
-        self.image.info.clone()
+        self.info.clone()
     }
 }
 
-impl<'a> Drop for Image<'a> {
+impl<'a, const BOUND: bool> Drop for Image<'a, BOUND> {
     fn drop(&mut self) {
-        let native_device = self.image.device.native();
+        let native_device = self.device.native();
 
         unsafe {
-            native_device.destroy_image(self.image.native_image, None);
+            native_device.destroy_image(self.native_image, None);
         }
     }
 }
@@ -227,7 +223,7 @@ mod test {
     use crate::error::Error;
     use crate::instance::{Instance, InstanceInfo};
     use crate::physicaldevice::PhysicalDevice;
-    use crate::resources::{ImageInfo, UnboundImage};
+    use crate::resources::{Image, ImageInfo};
 
     #[test]
     #[cfg(not(miri))]
@@ -245,7 +241,7 @@ mod test {
             .image_type(ImageType::TYPE_2D)
             .tiling(ImageTiling::OPTIMAL)
             .extent(Extent3D::default().width(512).height(512).depth(1));
-        let image = UnboundImage::new(&device, &info)?;
+        let image = Image::new(&device, &info)?;
         let heap_index = image.memory_requirement().any_heap();
         let allocation = Allocation::new(&device, 1024 * 1024, heap_index)?;
 

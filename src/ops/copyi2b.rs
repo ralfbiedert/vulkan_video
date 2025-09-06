@@ -6,13 +6,13 @@ use ash::vk::{BufferImageCopy, ImageAspectFlags, ImageLayout, ImageSubresourceLa
 
 /// Performs an image-to-buffer copy operation.
 pub struct CopyImage2Buffer<'a> {
-    image: &'a Image<'a>,
+    image: &'a Image<'a, true>,
     buffer: &'a Buffer<'a>,
     aspect_mask: ImageAspectFlags,
 }
 
 impl<'a> CopyImage2Buffer<'a> {
-    pub fn new(image: &'a Image<'a>, buffer: &'a Buffer<'a>, aspect_mask: ImageAspectFlags) -> Self {
+    pub fn new(image: &'a Image<'a, true>, buffer: &'a Buffer<'a>, aspect_mask: ImageAspectFlags) -> Self {
         Self {
             image,
             buffer,
@@ -54,7 +54,7 @@ mod test {
     use crate::ops::{AddToCommandBuffer, CopyImage2Buffer};
     use crate::physicaldevice::PhysicalDevice;
     use crate::queue::Queue;
-    use crate::resources::{Buffer, BufferInfo, ImageInfo, UnboundImage};
+    use crate::resources::{Buffer, BufferInfo, Image, ImageInfo};
     use ash::vk::{Extent3D, Format, ImageAspectFlags, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
 
     #[test]
@@ -80,7 +80,7 @@ mod test {
             .tiling(ImageTiling::OPTIMAL)
             .layout(ImageLayout::UNDEFINED)
             .extent(Extent3D::default().width(512).height(512).depth(1));
-        let image = UnboundImage::new(&device, &image_info)?;
+        let image = Image::new(&device, &image_info)?;
         let host_visible = image.memory_requirement().any_heap();
         let allocation = Allocation::new(&device, 1024 * 1024 * 8, host_visible)?;
         let image = image.bind(&allocation)?;

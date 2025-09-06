@@ -240,7 +240,7 @@ mod test {
     use crate::ops::{AddToCommandBuffer, CopyImage2Buffer, DecodeH264};
     use crate::physicaldevice::PhysicalDevice;
     use crate::queue::Queue;
-    use crate::resources::{Buffer, BufferInfo, ImageInfo, ImageView, ImageViewInfo, UnboundImage};
+    use crate::resources::{Buffer, BufferInfo, Image, ImageInfo, ImageView, ImageViewInfo};
     use crate::video::h264::H264StreamInspector;
     use crate::video::{VideoSession, VideoSessionParameters};
     use ash::vk::{
@@ -273,8 +273,8 @@ mod test {
             .layout(ImageLayout::UNDEFINED)
             .extent(Extent3D::default().width(512).height(512).depth(1));
 
-        let image_dst = UnboundImage::new_video_target(&device, &image_dst_info, &stream_inspector)?;
-        let image_ref = UnboundImage::new_video_target(&device, &image_dst_info, &stream_inspector)?;
+        let image_dst = Image::new_video_target(&device, &image_dst_info, &stream_inspector)?;
+        let image_ref = Image::new_video_target(&device, &image_dst_info, &stream_inspector)?;
         let heap_image = image_dst.memory_requirement().any_heap();
         let allocation_image_dst = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
         let allocation_image_ref = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
