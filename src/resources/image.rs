@@ -160,7 +160,7 @@ impl ImageShared {
         }
     }
 
-    pub fn bind(self, shared_allocation: Arc<AllocationShared>) -> Result<Self, Error> {
+    fn bind(self, shared_allocation: Arc<AllocationShared>) -> Result<Self, Error> {
         let native_device = self.shared_device.native();
         let native_image = self.native_image;
         let native_allocation = shared_allocation.native();
@@ -172,7 +172,7 @@ impl ImageShared {
         Ok(self)
     }
 
-    pub(crate) fn memory_requirement(&self) -> MemoryRequirements {
+    fn memory_requirement(&self) -> MemoryRequirements {
         let native_device = self.shared_device.native();
 
         unsafe {
