@@ -216,15 +216,13 @@ pub struct UnboundImage {
 
 impl UnboundImage {
     pub fn new(device: &Device, info: &ImageInfo) -> Result<Self, Error> {
-        let shared_device = ImageShared::new(device.shared(), info)?;
-
-        Ok(Self { shared: shared_device })
+        let shared = ImageShared::new(device.shared(), info)?;
+        Ok(Self { shared })
     }
 
     pub fn new_video_target(device: &Device, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
-        let shared_device = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
-
-        Ok(Self { shared: shared_device })
+        let shared = ImageShared::new_video_target(device.shared(), info, stream_inspector)?;
+        Ok(Self { shared })
     }
 
     pub fn bind(self, allocation: &Allocation) -> Result<Image, Error> {
