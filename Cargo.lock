@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "ash"
 version = "0.38.0+1.3.296"
-source = "git+https://github.com/ash-rs/ash#e377fb5d1ba966aca529250df39719125b7979a2"
+source = "git+https://github.com/ash-rs/ash#ccfd77e54b0b8696d5a4c43cf2391c4b5d077975"
 dependencies = [
  "libloading",
 ]
