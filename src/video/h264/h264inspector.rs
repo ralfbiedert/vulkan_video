@@ -34,8 +34,7 @@ impl H264StreamInspector {
         }
     }
 
-    pub fn feed_nal(&mut self, nal: &[u8]) {
-        let nal = RefNal::new(nal, &[], true);
+    pub fn feed_nal(&mut self, nal: RefNal<'_>) {
         let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
         let bits = nal.rbsp_bits();
 
