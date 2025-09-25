@@ -134,30 +134,29 @@ impl ImageShared {
     fn new_video_target(shared_device: Arc<DeviceShared>, info: &ImageInfo, stream_inspector: &H264StreamInspector) -> Result<Self, Error> {
         let native_device = shared_device.native();
 
-        unsafe {
-            let mut profiles = stream_inspector.profiles();
-            let profiles_inner = profiles.as_mut().get_unchecked_mut();
+        let mut h264_profile_info = stream_inspector.h264_profile_info();
+        let profiles = &[stream_inspector.profile_info(&mut h264_profile_info)];
+        let mut profile_list_info = stream_inspector.profile_list_info(profiles);
 
-            let create_image = ImageCreateInfo::default()
-                .format(info.format) // we got this from the videosession struct which listed this as teh format.
-                .samples(info.samples)
-                .usage(info.usage)
-                .mip_levels(info.mip_levels)
-                .array_layers(info.array_layers)
-                .image_type(info.image_type)
-                .tiling(info.tiling)
-                .initial_layout(info.layout)
-                .push_next(&mut profiles_inner.list)
-                .extent(info.extent);
+        let create_image = ImageCreateInfo::default()
+            .format(info.format) // we got this from the videosession struct which listed this as teh format.
+            .samples(info.samples)
+            .usage(info.usage)
+            .mip_levels(info.mip_levels)
+            .array_layers(info.array_layers)
+            .image_type(info.image_type)
+            .tiling(info.tiling)
+            .initial_layout(info.layout)
+            .push_next(&mut profile_list_info)
+            .extent(info.extent);
 
-            let native_image = native_device.create_image(&create_image, None)?;
+        let native_image = unsafe { native_device.create_image(&create_image, None)? };
 
-            Ok(Self {
-                shared_device,
-                native_image,
-                info: info.clone(),
-            })
-        }
+        Ok(Self {
+            shared_device,
+            native_image,
+            info: info.clone(),
+        })
     }
 
     fn bind(self, shared_allocation: Arc<AllocationShared>) -> Result<Self, Error> {

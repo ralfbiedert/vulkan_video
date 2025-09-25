@@ -58,7 +58,8 @@ impl VideoSessionShared {
             .spec_version(extension_version)
             .extension_name(extension_name)?;
 
-        let profiles = stream_inspector.profiles();
+        let mut h264_profile_info = stream_inspector.h264_profile_info();
+        let profile_info = stream_inspector.profile_info(&mut h264_profile_info);
 
         let queue_family_index = shared_device
             .physical_device()
@@ -69,7 +70,7 @@ impl VideoSessionShared {
         let video_session_create_info = VideoSessionCreateInfoKHR::default()
             .queue_family_index(queue_family_index)
             .flags(VideoSessionCreateFlagsKHR::empty())
-            .video_profile(&profiles.info)
+            .video_profile(&profile_info)
             .picture_format(Format::G8_B8R8_2PLANE_420_UNORM)
             .max_coded_extent(Extent2D { width: 512, height: 512 })
             .reference_picture_format(Format::G8_B8R8_2PLANE_420_UNORM)

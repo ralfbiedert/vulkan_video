@@ -94,29 +94,30 @@ impl BufferShared {
         // | BufferUsageFlags::VIDEO_ENCODE_DST_KHR
         // | BufferUsageFlags::VIDEO_ENCODE_SRC_KHR;
 
-        let mut profiles = stream_inspector.profiles();
+        let mut h264_profile_info = stream_inspector.h264_profile_info();
+        let profiles = &[stream_inspector.profile_info(&mut h264_profile_info)];
+        let mut profile_list_info = stream_inspector.profile_list_info(profiles);
 
-        unsafe {
-            let profile_infos = &mut profiles.as_mut().get_unchecked_mut().list;
+        let buffer_create_info = BufferCreateInfo::default()
+            .size(buffer_info.size)
+            .usage(usage)
+            .push_next(&mut profile_list_info);
 
-            let buffer_create_info = BufferCreateInfo::default()
-                .size(buffer_info.size)
-                .usage(usage)
-                .push_next(profile_infos);
+        let device_memory = shared_allocation.native();
+        let offset = buffer_info.offset.unwrap_or(0);
 
+        let device_buffer = unsafe {
             let device_buffer = native_device.create_buffer(&buffer_create_info, None)?;
-            let device_memory = shared_allocation.native();
-            let offset = buffer_info.offset.unwrap_or(0);
-
             native_device.bind_buffer_memory(device_buffer, device_memory, offset)?;
+            device_buffer
+        };
 
-            Ok(Self {
-                shared_device,
-                shared_allocation,
-                device_buffer,
-                buffer_info: buffer_info.clone(),
-            })
-        }
+        Ok(Self {
+            shared_device,
+            shared_allocation,
+            device_buffer,
+            buffer_info: buffer_info.clone(),
+        })
     }
 
     pub fn external(shared_allocation: Arc<AllocationShared>, _pointer: *mut c_void, buffer_info: &BufferInfo) -> Result<Self, Error> {
