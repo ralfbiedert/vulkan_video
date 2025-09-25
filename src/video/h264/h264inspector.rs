@@ -27,11 +27,6 @@ pub struct H264StreamInspector {
     h264_context: Context,
 }
 
-pub enum XXX {
-    Sps(SeqParameterSet),
-    Pps(PicParameterSet),
-}
-
 impl H264StreamInspector {
     pub fn new() -> Self {
         Self {
@@ -39,9 +34,7 @@ impl H264StreamInspector {
         }
     }
 
-    pub fn feed_nal(&mut self, nal: &[u8]) -> Option<XXX> {
-        let rval = None;
-
+    pub fn feed_nal(&mut self, nal: &[u8]) {
         let nal = RefNal::new(nal, &[], true);
         let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
         let bits = nal.rbsp_bits();
@@ -60,8 +53,6 @@ impl H264StreamInspector {
             }
             _ => {} // _ => NalInterest::Ignore,
         }
-
-        rval
     }
 
     pub fn profiles<'f>(&self) -> Pin<Box<VideoProfileInfoBundle<'f>>> {
