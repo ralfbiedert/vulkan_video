@@ -64,46 +64,66 @@ impl<'a> Iterator for H264StreamIter<'a> {
     }
 }
 
+pub struct H264Stream<S> {
+    stream: S,
+}
+impl<S> H264Stream<S> {
+    pub fn new(stream: S) -> Self {
+        Self { stream }
+    }
+}
+impl<'a, S: AsRef<[u8]>> IntoIterator for &'a H264Stream<S> {
+    type Item = RefNal<'a>;
+    type IntoIter = H264StreamIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        H264StreamIter::new(self.stream.as_ref())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn splits_at_nal() {
-        let stream = [];
-        assert!(H264StreamIter::new(&stream).next().is_none());
+        let stream = H264Stream::new(&[]);
+        let mut nals = stream.into_iter();
+        assert!(nals.next().is_none());
 
-        let stream = [2, 3];
-        assert!(H264StreamIter::new(&stream).next().is_none());
+        let stream = H264Stream::new(&[2, 3]);
+        let mut nals = stream.into_iter();
+        assert!(nals.next().is_none());
 
-        let stream = [0, 0, 1];
-        assert_eq!(H264StreamIter::new(&stream).next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        let stream = H264Stream::new(&[0, 0, 1]);
+        let mut nals = stream.into_iter();
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
 
-        let stream = [0, 0, 1, 2];
-        assert_eq!(H264StreamIter::new(&stream).next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
+        let stream = H264Stream::new(&[0, 0, 1, 2]);
+        let mut nals = stream.into_iter();
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
 
-        let stream = [0, 0, 1, 2, 0, 0, 1];
-        let mut split = H264StreamIter::new(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
-        assert!(split.next().is_none());
+        let stream = H264Stream::new(&[0, 0, 1, 2, 0, 0, 1]);
+        let mut nals = stream.into_iter();
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert!(nals.next().is_none());
 
-        let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0, 1];
-        let mut split = H264StreamIter::new(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
-        assert!(split.next().is_none());
+        let stream = H264Stream::new(&[0, 0, 0, 0, 0, 1, 2, 0, 0, 1]);
+        let mut nals = stream.into_iter();
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert!(nals.next().is_none());
 
-        let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0];
-        let mut split = H264StreamIter::new(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 0, 0], &[], true));
-        assert!(split.next().is_none());
+        let stream = H264Stream::new(&[0, 0, 0, 0, 0, 1, 2, 0, 0]);
+        let mut nals = stream.into_iter();
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 0, 0], &[], true));
+        assert!(nals.next().is_none());
 
-        let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0, 1, 2, 3, 0, 0, 1];
-        let mut split = H264StreamIter::new(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 3], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
-        assert!(split.next().is_none());
+        let stream = H264Stream::new(&[0, 0, 0, 0, 0, 1, 2, 0, 0, 1, 2, 3, 0, 0, 1]);
+        let mut nals = stream.into_iter();
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 3], &[], true));
+        assert_eq!(nals.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert!(nals.next().is_none());
     }
 }

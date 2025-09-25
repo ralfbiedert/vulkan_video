@@ -90,7 +90,7 @@ impl H264StreamInspector {
 mod test {
     use crate::error::Error;
     use crate::video::h264::H264StreamInspector;
-    use crate::video::H264StreamIter;
+    use crate::video::H264Stream;
     use ash::vk::VideoCodecOperationFlagsKHR;
 
     #[test]
@@ -109,12 +109,12 @@ mod test {
 
     #[test]
     fn inspect_h264_stream() -> Result<(), Error> {
-        let h264_data = include_bytes!("../../../tests/videos/multi_512x512.h264");
+        let h264_stream = H264Stream::new(include_bytes!("../../../tests/videos/multi_512x512.h264"));
 
         let mut inspector = H264StreamInspector::new();
 
         // Push a couple NALs. Pushes don't have to match up to Annex B framing.
-        for nal in H264StreamIter::new(h264_data) {
+        for nal in &h264_stream {
             inspector.feed_nal(nal).unwrap();
         }
 
