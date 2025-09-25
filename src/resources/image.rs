@@ -2,7 +2,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::allocation::{Allocation, AllocationShared, MemoryTypeIndex};
-use ash::vk::{Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags};
+use ash::vk::{
+    Extent3D, Format, ImageCreateInfo, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, SampleCountFlags, VideoProfileListInfoKHR,
+};
 
 use crate::device::{Device, DeviceShared};
 use crate::error::Error;
@@ -136,7 +138,7 @@ impl ImageShared {
 
         let mut h264_profile_info = stream_inspector.h264_profile_info();
         let profiles = &[stream_inspector.profile_info(&mut h264_profile_info)];
-        let mut profile_list_info = stream_inspector.profile_list_info(profiles);
+        let mut profile_list_info = VideoProfileListInfoKHR::default().profiles(profiles);
 
         let create_image = ImageCreateInfo::default()
             .format(info.format) // we got this from the videosession struct which listed this as teh format.
