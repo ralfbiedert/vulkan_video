@@ -152,8 +152,7 @@ impl AddToCommandBuffer for DecodeH264 {
             .src_buffer_offset(self.decode_info.offset)
             .src_buffer_range(self.decode_info.size)
             // .src_buffer_range(2736)
-            .dst_picture_resource(picture_resource_dst)
-            .setup_reference_slot(&video_reference_slot);
+            .dst_picture_resource(picture_resource_dst);
 
         let ssr = ImageSubresourceRange::default()
             .aspect_mask(ImageAspectFlags::COLOR)

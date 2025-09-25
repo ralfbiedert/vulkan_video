@@ -74,8 +74,8 @@ impl VideoSessionShared {
             .picture_format(Format::G8_B8R8_2PLANE_420_UNORM)
             .max_coded_extent(Extent2D { width: 512, height: 512 })
             .reference_picture_format(Format::G8_B8R8_2PLANE_420_UNORM)
-            .max_dpb_slots(17)
-            .max_active_reference_pictures(16)
+            .max_dpb_slots(0)
+            .max_active_reference_pictures(0)
             .std_header_version(&extensions_names);
 
         let result = unsafe {
