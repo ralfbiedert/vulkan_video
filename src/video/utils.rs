@@ -1,3 +1,5 @@
+use core::iter::Enumerate;
+use core::slice::Iter as SliceIter;
 use h264_reader::nal::RefNal;
 
 // How many `0` we have to observe before a `1` means NAL.
@@ -5,7 +7,7 @@ const NAL_MIN_0_COUNT: usize = 2;
 
 /// Given a stream, finds the index of the nth NAL start.
 #[inline]
-fn next_offset<'a>(iter: &mut core::iter::Enumerate<core::slice::Iter<'a, u8>>) -> Option<usize> {
+fn next_offset<'a>(iter: &mut Enumerate<SliceIter<'a, u8>>) -> Option<usize> {
     let mut count_0 = 0;
     for (offset, byte) in iter {
         match byte {
@@ -45,7 +47,7 @@ pub fn nal_units<'a>(stream: &'a [u8]) -> NalUnits<'a> {
 }
 pub struct NalUnits<'a> {
     stream: &'a [u8],
-    iter: core::iter::Enumerate<core::slice::Iter<'a, u8>>,
+    iter: Enumerate<SliceIter<'a, u8>>,
     next_offset: Option<usize>,
 }
 impl<'a> Iterator for NalUnits<'a> {
