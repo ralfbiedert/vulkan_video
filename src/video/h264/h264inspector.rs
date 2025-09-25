@@ -95,24 +95,42 @@ impl<'a> SpsInfo<'a> {
                 _bitfield_1: Default::default(),
                 __bindgen_padding_0: 0,
             };
+            let mut aspect_ratio_idc = 0;
+            if let Some(aspect_ratio_info) = &vui.aspect_ratio_info {
+                flags.set_aspect_ratio_info_present_flag(1);
+                aspect_ratio_idc = aspect_ratio_info.get().map_or(0, |(x, y)| ((y as u32) << 16) + (x as u32));
+            }
+            // flags.set_overscan_info_present_flag(vui.overscan_info_present);
+            flags.set_overscan_appropriate_flag(
+                (vui.overscan_appropriate == h264_reader::nal::sps::OverscanAppropriate::Appropriate) as u32,
+            );
+            flags.set_video_signal_type_present_flag(vui.video_signal_type.is_some() as u32);
+            // flags.set_video_full_range_flag(vui.video_full_range);
+            // flags.set_color_description_present_flag(vui.color_description_present);
+            flags.set_chroma_loc_info_present_flag(vui.chroma_loc_info.is_some() as u32);
+            flags.set_timing_info_present_flag(vui.timing_info.is_some() as u32);
+            // flags.set_fixed_frame_rate_flag(vui.fixed_frame_rate);
+            flags.set_bitstream_restriction_flag(vui.bitstream_restrictions.is_some() as u32);
+            flags.set_nal_hrd_parameters_present_flag(vui.nal_hrd_parameters.is_some() as u32);
+            flags.set_vcl_hrd_parameters_present_flag(vui.vcl_hrd_parameters.is_some() as u32);
 
             StdVideoH264SequenceParameterSetVui {
                 flags,
-                aspect_ratio_idc: (),
-                sar_width: (),
-                sar_height: (),
-                video_format: (),
-                colour_primaries: (),
-                transfer_characteristics: (),
-                matrix_coefficients: (),
-                num_units_in_tick: (),
-                time_scale: (),
-                max_num_reorder_frames: (),
-                max_dec_frame_buffering: (),
-                chroma_sample_loc_type_top_field: (),
-                chroma_sample_loc_type_bottom_field: (),
-                reserved1: (),
-                pHrdParameters: (),
+                aspect_ratio_idc,
+                sar_width: todo!(),
+                sar_height: todo!(),
+                video_format: todo!(),
+                colour_primaries: todo!(),
+                transfer_characteristics: todo!(),
+                matrix_coefficients: todo!(),
+                num_units_in_tick: todo!(),
+                time_scale: todo!(),
+                max_num_reorder_frames: todo!(),
+                max_dec_frame_buffering: todo!(),
+                chroma_sample_loc_type_top_field: todo!(),
+                chroma_sample_loc_type_bottom_field: todo!(),
+                reserved1: todo!(),
+                pHrdParameters: todo!(),
             }
         });
         SpsInfo {
@@ -205,11 +223,11 @@ struct PpsInfo<'a> {
 }
 impl<'a> PpsInfo<'a> {
     fn new(pps: &'a PicParameterSet) -> Self {
-        // let p_offset_for_ref_frame=0;
-        // let p_scaling_lists=pps.chroma_info.scaling_matrix.as_ref().map(|matrix|{
-        // 	matrix.scaling_list4x4
-        // 	StdVideoH264ScalingLists
-        // });
+        let p_scaling_lists = pps
+            .extension
+            .as_ref()
+            .and_then(|extra| extra.pic_scaling_matrix.as_ref())
+            .map(|matrix| StdVideoH264ScalingLists);
         PpsInfo { pps, p_scaling_lists }
     }
 }
@@ -237,7 +255,7 @@ impl PpsStep1<'_> {
                 pic_init_qs_minus26: todo!(),
                 chroma_qp_index_offset: todo!(),
                 second_chroma_qp_index_offset: todo!(),
-                pScalingLists: todo!(),
+                pScalingLists: pps_info.p_scaling_lists.as_ref().map_or(null(), |p| p),
             })
             .collect();
         PpsStep2 { pps, _marker: PhantomData }
