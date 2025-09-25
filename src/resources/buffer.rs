@@ -5,7 +5,7 @@ use crate::video::h264::H264StreamInspector;
 use ash::vk;
 use ash::vk::{
     BufferCreateInfo, BufferUsageFlags, DeviceSize, ExternalMemoryBufferCreateInfo, ExternalMemoryHandleTypeFlags, MappedMemoryRange,
-    MemoryMapFlags, WHOLE_SIZE,
+    MemoryMapFlags, VideoProfileListInfoKHR, WHOLE_SIZE,
 };
 use std::ffi::c_void;
 use std::sync::Arc;
@@ -96,7 +96,7 @@ impl BufferShared {
 
         let mut h264_profile_info = stream_inspector.h264_profile_info();
         let profiles = &[stream_inspector.profile_info(&mut h264_profile_info)];
-        let mut profile_list_info = stream_inspector.profile_list_info(profiles);
+        let mut profile_list_info = VideoProfileListInfoKHR::default().profiles(profiles);
 
         let buffer_create_info = BufferCreateInfo::default()
             .size(buffer_info.size)

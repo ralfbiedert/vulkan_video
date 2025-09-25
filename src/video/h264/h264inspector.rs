@@ -1,7 +1,7 @@
 use crate::Error;
 use ash::vk::{
     VideoChromaSubsamplingFlagsKHR, VideoCodecOperationFlagsKHR, VideoComponentBitDepthFlagsKHR, VideoDecodeH264PictureLayoutFlagsKHR,
-    VideoDecodeH264ProfileInfoKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR,
+    VideoDecodeH264ProfileInfoKHR, VideoProfileInfoKHR,
 };
 use h264_reader::annexb::AnnexBReader;
 use h264_reader::nal::pps::{PicParameterSet, PpsError};
@@ -67,9 +67,6 @@ impl H264StreamInspector {
             .luma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
             .chroma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
     }
-    pub fn profile_list_info<'a>(&self, profiles: &'a [VideoProfileInfoKHR<'_>]) -> VideoProfileListInfoKHR<'a> {
-        VideoProfileListInfoKHR::default().profiles(profiles)
-    }
 }
 
 #[cfg(test)]
@@ -77,14 +74,14 @@ mod test {
     use crate::error::Error;
     use crate::video::h264::H264StreamInspector;
     use crate::video::nal_units;
-    use ash::vk::VideoCodecOperationFlagsKHR;
+    use ash::vk::{VideoCodecOperationFlagsKHR, VideoProfileListInfoKHR};
 
     #[test]
     fn get_profile_info_list() -> Result<(), Error> {
         let inspector = H264StreamInspector::new();
         let mut h264_profile_info = inspector.h264_profile_info();
         let profiles = &[inspector.profile_info(&mut h264_profile_info)];
-        let infos = inspector.profile_list_info(profiles);
+        let infos = VideoProfileListInfoKHR::default().profiles(profiles);
 
         unsafe {
             assert_eq!(infos.profile_count, 1);
