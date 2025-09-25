@@ -40,13 +40,11 @@ impl H264StreamInspector {
         match nal_unit_type {
             UnitType::SeqParameterSet => {
                 let sps = SeqParameterSet::from_bits(bits).map_err(FeedError::Sps)?;
-
-                dbg!(&sps.chroma_info);
-
                 self.h264_context.put_seq_param_set(sps);
             }
             UnitType::PicParameterSet => {
-                let _pps = PicParameterSet::from_bits(&self.h264_context, bits).map_err(FeedError::Pps)?;
+                let pps = PicParameterSet::from_bits(&self.h264_context, bits).map_err(FeedError::Pps)?;
+                self.h264_context.put_pic_param_set(pps);
             }
             _ => {}
         }
