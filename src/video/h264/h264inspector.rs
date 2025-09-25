@@ -4,8 +4,8 @@ use ash::vk::{
     VideoDecodeH264ProfileInfoKHR, VideoProfileInfoKHR, VideoProfileListInfoKHR,
 };
 use h264_reader::annexb::AnnexBReader;
-use h264_reader::nal::pps::PicParameterSet;
-use h264_reader::nal::sps::SeqParameterSet;
+use h264_reader::nal::pps::{PicParameterSet, PpsError};
+use h264_reader::nal::sps::{SeqParameterSet, SpsError};
 use h264_reader::nal::{Nal, NalHeader, NalHeaderError, RefNal, UnitType};
 use h264_reader::push::{NalFragmentHandler, NalInterest};
 use h264_reader::Context;
@@ -27,6 +27,13 @@ pub struct H264StreamInspector {
     h264_context: Context,
 }
 
+#[derive(Debug)]
+pub enum FeedError {
+    NalHeader(NalHeaderError),
+    Pps(PpsError),
+    Sps(SpsError),
+}
+
 impl H264StreamInspector {
     pub fn new() -> Self {
         Self {
@@ -34,24 +41,25 @@ impl H264StreamInspector {
         }
     }
 
-    pub fn feed_nal(&mut self, nal: RefNal<'_>) {
-        let nal_unit_type = nal.header().unwrap().nal_unit_type(); // TODO: Remove unwrap(), see above.
+    pub fn feed_nal(&mut self, nal: RefNal<'_>) -> Result<(), FeedError> {
+        let nal_unit_type = nal.header().map_err(FeedError::NalHeader)?.nal_unit_type();
         let bits = nal.rbsp_bits();
 
         match nal_unit_type {
             UnitType::SeqParameterSet => {
-                let sps = SeqParameterSet::from_bits(bits).unwrap(); // TODO: Remove unwrap(), see above.
+                let sps = SeqParameterSet::from_bits(bits).map_err(FeedError::Sps)?;
 
                 dbg!(&sps.chroma_info);
 
                 self.h264_context.put_seq_param_set(sps);
             }
             UnitType::PicParameterSet => {
-                // TODO: Remove unwrap(), see above.
-                let _pps = PicParameterSet::from_bits(&self.h264_context, bits).unwrap();
+                let _pps = PicParameterSet::from_bits(&self.h264_context, bits).map_err(FeedError::Pps)?;
             }
-            _ => {} // _ => NalInterest::Ignore,
+            _ => {}
         }
+
+        Ok(())
     }
 
     pub fn profiles<'f>(&self) -> Pin<Box<VideoProfileInfoBundle<'f>>> {
@@ -107,7 +115,7 @@ mod test {
 
         // Push a couple NALs. Pushes don't have to match up to Annex B framing.
         for nal in nal_units(h264_data) {
-            inspector.feed_nal(nal);
+            inspector.feed_nal(nal).unwrap();
         }
 
         Ok(())
