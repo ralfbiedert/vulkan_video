@@ -1,3 +1,4 @@
+use crate::ops::DecodeInfo;
 use core::iter::Enumerate;
 use core::slice::Iter as SliceIter;
 use h264_reader::nal::RefNal;
@@ -49,6 +50,11 @@ pub struct NalUnits<'a> {
     iter: Enumerate<SliceIter<'a, u8>>,
     next_offset: Option<usize>,
 }
+impl<'a> NalUnits<'a> {
+    pub fn decode_info(self) -> NalUnitsDecodeInfo<'a> {
+        NalUnitsDecodeInfo(self)
+    }
+}
 impl<'a> Iterator for NalUnits<'a> {
     type Item = RefNal<'a>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -65,6 +71,26 @@ impl<'a> Iterator for NalUnits<'a> {
             None
         } else {
             Some(RefNal::new(nal, &[], true))
+        }
+    }
+}
+
+pub struct NalUnitsDecodeInfo<'a>(NalUnits<'a>);
+impl<'a> Iterator for NalUnitsDecodeInfo<'a> {
+    type Item = DecodeInfo;
+    fn next(&mut self) -> Option<Self::Item> {
+        let NalUnitsDecodeInfo(iter) = self;
+        let offset = iter.next_offset?;
+        iter.next_offset = next_offset(&mut iter.iter);
+        let size = match iter.next_offset {
+            Some(next_offset) => next_offset - (NAL_MIN_0_COUNT + 1) - offset,
+            None => iter.stream.len() - offset,
+        };
+
+        if size == 0 {
+            None
+        } else {
+            Some(DecodeInfo::new(offset as u64, size as u64))
         }
     }
 }
