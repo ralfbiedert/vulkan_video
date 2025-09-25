@@ -167,7 +167,7 @@ impl AddToCommandBuffer for DecodeH264 {
             .dst_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
             .dst_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
             .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .new_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
+            .new_layout(ImageLayout::VIDEO_DECODE_DST_KHR)
             .image(native_image_dst)
             .subresource_range(ssr);
 
@@ -175,7 +175,7 @@ impl AddToCommandBuffer for DecodeH264 {
             .src_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
             .src_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .old_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
+            .old_layout(ImageLayout::VIDEO_DECODE_DST_KHR)
             .dst_stage_mask(PipelineStageFlags2::BOTTOM_OF_PIPE)
             .dst_access_mask(AccessFlags2::NONE_KHR)
             .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
