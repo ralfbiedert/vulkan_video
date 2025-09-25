@@ -5,25 +5,15 @@ const NAL_MIN_0_COUNT: usize = 2;
 
 /// Given a stream, finds the index of the nth NAL start.
 #[inline]
-fn nth_nal_index(stream: &[u8], nth: usize) -> Option<usize> {
+fn next_offset<'a>(iter: &mut core::iter::Enumerate<core::slice::Iter<'a, u8>>) -> Option<usize> {
     let mut count_0 = 0;
-    let mut n = 0;
-
-    for (i, byte) in stream.iter().enumerate() {
+    for (offset, byte) in iter {
         match byte {
             0 => count_0 += 1,
-            1 if count_0 >= NAL_MIN_0_COUNT => {
-                if n == nth {
-                    return Some(i - NAL_MIN_0_COUNT);
-                } else {
-                    count_0 = 0;
-                    n += 1;
-                }
-            }
+            1 if count_0 >= NAL_MIN_0_COUNT => return Some(offset - NAL_MIN_0_COUNT),
             _ => count_0 = 0,
         }
     }
-
     None
 }
 
@@ -48,25 +38,28 @@ fn nth_nal_index(stream: &[u8], nth: usize) -> Option<usize> {
 /// NAL units in the middle are split at their boundaries, the last packet is returned
 /// as-is.
 ///
-pub fn nal_units<'a>(mut stream: &'a [u8]) -> impl Iterator<Item = RefNal<'a>> {
-    std::iter::from_fn(move || {
-        let first = nth_nal_index(stream, 0);
-        let next = nth_nal_index(stream, 1);
-
-        match (first, next) {
-            (Some(f), Some(n)) => {
-                let rval = &stream[f..n];
-                stream = &stream[n..];
-                Some(RefNal::new(rval, &[], true))
-            }
-            (Some(f), None) => {
-                let rval = &stream[f..];
-                stream = &stream[f + NAL_MIN_0_COUNT..];
-                Some(RefNal::new(rval, &[], true))
-            }
-            _ => None,
-        }
-    })
+pub fn nal_units<'a>(stream: &'a [u8]) -> NalUnits<'a> {
+    let mut iter = stream.into_iter().enumerate();
+    let next_offset = next_offset(&mut iter);
+    NalUnits { stream, iter, next_offset }
+}
+pub struct NalUnits<'a> {
+    stream: &'a [u8],
+    iter: core::iter::Enumerate<core::slice::Iter<'a, u8>>,
+    next_offset: Option<usize>,
+}
+impl<'a> Iterator for NalUnits<'a> {
+    type Item = RefNal<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let offset = self.next_offset?;
+        let next_offset = next_offset(&mut self.iter);
+        self.next_offset = next_offset;
+        let nal = match next_offset {
+            Some(next_offset) => &self.stream[offset..next_offset],
+            None => &self.stream[offset..],
+        };
+        Some(RefNal::new(nal, &[], true))
+    }
 }
 
 #[cfg(test)]
