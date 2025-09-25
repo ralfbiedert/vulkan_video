@@ -41,24 +41,49 @@ fn next_offset<'a>(iter: &mut core::iter::Enumerate<core::slice::Iter<'a, u8>>) 
 pub struct NalIter<'a> {
     stream: &'a [u8],
     iter: core::iter::Enumerate<core::slice::Iter<'a, u8>>,
-    offset: usize,
+    state: NalIterState,
+}
+enum NalIterState {
+    Next { start: usize, end: usize },
+    Last { start: usize },
+    End,
 }
 impl<'a> NalIter<'a> {
     pub fn new(stream: &'a [u8]) -> Self {
         let mut iter = stream.into_iter().enumerate();
-        let offset = next_offset(&mut iter).unwrap_or(stream.len());
-        Self { stream, iter, offset }
+        let state = match next_offset(&mut iter) {
+            Some(offset) => match next_offset(&mut iter) {
+                Some(next_offset) => NalIterState::Next {
+                    start: offset,
+                    end: next_offset,
+                },
+                None => NalIterState::Last { start: offset },
+            },
+            None => NalIterState::End,
+        };
+        Self { stream, iter, state }
     }
 }
 impl<'a> Iterator for NalIter<'a> {
     type Item = RefNal<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let offset = next_offset(&mut self.iter)?;
-        // SAFETY: offset is guaranteed to be within range
-        // let nal = unsafe { self.stream.get_unchecked(self.offset..offset) };
-        let nal = &self.stream[self.offset..offset];
-        self.offset = offset;
-        Some(RefNal::new(nal, &[], true))
+        match self.state {
+            NalIterState::Next { start, end } => {
+                self.state = match next_offset(&mut self.iter) {
+                    Some(next_offset) => NalIterState::Next {
+                        start: end,
+                        end: next_offset,
+                    },
+                    None => NalIterState::Last { start: end },
+                };
+                Some(RefNal::new(&self.stream[start..end], &[], true))
+            }
+            NalIterState::Last { start } => {
+                self.state = NalIterState::End;
+                Some(RefNal::new(&self.stream[start..], &[], true))
+            }
+            NalIterState::End => None,
+        }
     }
 }
 
