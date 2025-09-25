@@ -9,7 +9,7 @@ mod utils;
 
 pub use session::VideoSession;
 pub use sessionparameters::VideoSessionParameters;
-pub use utils::NalIter;
+pub use utils::H264StreamIter;
 
 pub(crate) use session::VideoSessionShared;
 pub(crate) use sessionparameters::VideoSessionParametersShared;

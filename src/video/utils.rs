@@ -38,19 +38,19 @@ fn next_offset<'a>(iter: &mut core::iter::Enumerate<core::slice::Iter<'a, u8>>) 
 /// NAL units in the middle are split at their boundaries, the last packet is returned
 /// as-is.
 ///
-pub struct NalIter<'a> {
+pub struct H264StreamIter<'a> {
     stream: &'a [u8],
     iter: core::iter::Enumerate<core::slice::Iter<'a, u8>>,
     next_offset: Option<usize>,
 }
-impl<'a> NalIter<'a> {
+impl<'a> H264StreamIter<'a> {
     pub fn new(stream: &'a [u8]) -> Self {
         let mut iter = stream.into_iter().enumerate();
         let next_offset = next_offset(&mut iter);
         Self { stream, iter, next_offset }
     }
 }
-impl<'a> Iterator for NalIter<'a> {
+impl<'a> Iterator for H264StreamIter<'a> {
     type Item = RefNal<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         let offset = self.next_offset?;
@@ -71,36 +71,36 @@ mod test {
     #[test]
     fn splits_at_nal() {
         let stream = [];
-        assert!(NalIter::new(&stream).next().is_none());
+        assert!(H264StreamIter::new(&stream).next().is_none());
 
         let stream = [2, 3];
-        assert!(NalIter::new(&stream).next().is_none());
+        assert!(H264StreamIter::new(&stream).next().is_none());
 
         let stream = [0, 0, 1];
-        assert_eq!(NalIter::new(&stream).next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert_eq!(H264StreamIter::new(&stream).next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
 
         let stream = [0, 0, 1, 2];
-        assert_eq!(NalIter::new(&stream).next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
+        assert_eq!(H264StreamIter::new(&stream).next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
 
         let stream = [0, 0, 1, 2, 0, 0, 1];
-        let mut split = NalIter::new(&stream);
+        let mut split = H264StreamIter::new(&stream);
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
         assert!(split.next().is_none());
 
         let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0, 1];
-        let mut split = NalIter::new(&stream);
+        let mut split = H264StreamIter::new(&stream);
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
         assert!(split.next().is_none());
 
         let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0];
-        let mut split = NalIter::new(&stream);
+        let mut split = H264StreamIter::new(&stream);
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 0, 0], &[], true));
         assert!(split.next().is_none());
 
         let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0, 1, 2, 3, 0, 0, 1];
-        let mut split = NalIter::new(&stream);
+        let mut split = H264StreamIter::new(&stream);
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 3], &[], true));
         assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
