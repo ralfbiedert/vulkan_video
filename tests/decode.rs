@@ -1,8 +1,8 @@
 use ash::vk::{Extent3D, Format, ImageAspectFlags, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, ImageViewType, SampleCountFlags};
-use vulkan_video::ops::{AddToCommandBuffer, CopyImage2Buffer, DecodeH264, DecodeInfo, FillBuffer};
-use vulkan_video::resources::{Buffer, BufferInfo, Image, ImageInfo, ImageView, ImageViewInfo};
+use vulkan_video::ops::{AddToCommandBuffer, CopyImage2Buffer, DecodeH264, FillBuffer};
+use vulkan_video::resources::{Buffer, BufferInfo, ImageInfo, ImageView, ImageViewInfo, UnboundImage};
 use vulkan_video::video::h264::H264StreamInspector;
-use vulkan_video::video::{nal_units, VideoSession, VideoSessionParameters};
+use vulkan_video::video::{decode_info_iter, VideoSession, VideoSessionParameters};
 use vulkan_video::{error, Allocation, CommandBuffer, Device, Error, Instance, InstanceInfo, PhysicalDevice, Queue, Variant};
 
 #[test]
@@ -31,10 +31,13 @@ fn decode_multiple_h264_frames() -> Result<(), Error> {
         .layout(ImageLayout::UNDEFINED)
         .extent(Extent3D::default().width(512).height(512).depth(1));
 
-    let image_dst = Image::new_video_target(&device, &image_dst_info, &stream_inspector)?;
+    let image_dst = UnboundImage::new_video_target(&device, &image_dst_info, &stream_inspector)?;
+    let image_ref = UnboundImage::new_video_target(&device, &image_dst_info, &stream_inspector)?;
     let heap_image = image_dst.memory_requirement().any_heap();
     let allocation_image_dst = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
+    let allocation_image_ref = Allocation::new(&device, 512 * 512 * 4, heap_image)?;
     let image_dst = image_dst.bind(&allocation_image_dst)?;
+    let image_ref = image_ref.bind(&allocation_image_ref)?;
 
     let image_view_dst_info = ImageViewInfo::new()
         .aspect_mask(ImageAspectFlags::COLOR)
@@ -43,6 +46,7 @@ fn decode_multiple_h264_frames() -> Result<(), Error> {
         .layer_count(1)
         .level_count(1);
     let image_view_dst = ImageView::new(&image_dst, &image_view_dst_info)?;
+    let image_view_ref = ImageView::new(&image_ref, &image_view_dst_info)?;
     let queue_video_decode = physical_device
         .queue_family_infos()
         .any_decode()
@@ -66,16 +70,18 @@ fn decode_multiple_h264_frames() -> Result<(), Error> {
     let buffer_info_output = BufferInfo::new().size(512 * 512 * 4);
     let buffer_output = Buffer::new(&allocation_output, &buffer_info_output)?;
 
-    let mut offset = 0;
-
-    for nal in nal_units(h264_data) {
+    for decode_info in decode_info_iter(h264_data) {
         let video_session = VideoSession::new(&device, &stream_inspector)?;
         let video_session_parameters = VideoSessionParameters::new(&video_session, &stream_inspector)?;
 
-        let decode_info = DecodeInfo::new(offset, nal.len() as u64);
-
         let fill = FillBuffer::new(&buffer_output, 0);
-        let decode = DecodeH264::new(&buffer_h264, &video_session_parameters, &image_view_dst, &decode_info);
+        let decode = DecodeH264::new(
+            &buffer_h264,
+            &video_session_parameters,
+            &image_view_dst,
+            &image_view_ref,
+            &decode_info,
+        );
         let copy = CopyImage2Buffer::new(&image_dst, &buffer_output, ImageAspectFlags::PLANE_0);
 
         queue.build_and_submit(&command_buffer, |x| {
@@ -87,8 +93,6 @@ fn decode_multiple_h264_frames() -> Result<(), Error> {
 
         let mut data_out = [0u8; 512 * 512 * 4];
         buffer_output.download_into(&mut data_out)?;
-
-        offset += nal.len() as u64;
 
         dbg!(&data_out[0..10]);
     }

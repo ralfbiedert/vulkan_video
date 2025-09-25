@@ -9,7 +9,7 @@ mod utils;
 
 pub use session::VideoSession;
 pub use sessionparameters::VideoSessionParameters;
-pub use utils::nal_units;
+pub use utils::{decode_info_iter, nal_units};
 
 pub(crate) use session::VideoSessionShared;
 pub(crate) use sessionparameters::VideoSessionParametersShared;
