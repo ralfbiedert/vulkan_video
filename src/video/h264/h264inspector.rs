@@ -13,14 +13,6 @@ use std::marker::PhantomPinned;
 use std::pin::Pin;
 use std::ptr::addr_of;
 
-#[derive(Default)]
-pub struct VideoProfileInfoBundle<'a> {
-    pub(crate) info_h264: VideoDecodeH264ProfileInfoKHR<'a>,
-    pub(crate) info: VideoProfileInfoKHR<'a>,
-    pub(crate) list: VideoProfileListInfoKHR<'a>,
-    _pinned: PhantomPinned,
-}
-
 /// Parses H.264 NAL units and returns mata data we need to feed into Vulkan.
 #[derive(Default)]
 pub struct H264StreamInspector {
@@ -62,27 +54,21 @@ impl H264StreamInspector {
         Ok(())
     }
 
-    pub fn profiles<'f>(&self) -> Pin<Box<VideoProfileInfoBundle<'f>>> {
-        let mut inner = Box::pin(VideoProfileInfoBundle::default());
-
-        let m = unsafe { inner.as_mut().get_unchecked_mut() };
-
-        m.info_h264.picture_layout = VideoDecodeH264PictureLayoutFlagsKHR::INTERLACED_INTERLEAVED_LINES;
-        m.info_h264.std_profile_idc = 100;
-
-        m.info.p_next = addr_of!(m.info_h264).cast();
-        m.info.video_codec_operation = VideoCodecOperationFlagsKHR::DECODE_H264;
-        m.info.chroma_subsampling = VideoChromaSubsamplingFlagsKHR::TYPE_420;
-        m.info.luma_bit_depth = VideoComponentBitDepthFlagsKHR::TYPE_8;
-        m.info.chroma_bit_depth = VideoComponentBitDepthFlagsKHR::TYPE_8;
-
-        m.list = VideoProfileListInfoKHR {
-            p_profiles: addr_of!(m.info),
-            profile_count: 1,
-            ..Default::default()
-        };
-
-        inner
+    pub fn h264_profile_info<'a>(&self) -> VideoDecodeH264ProfileInfoKHR<'a> {
+        VideoDecodeH264ProfileInfoKHR::default()
+            .picture_layout(VideoDecodeH264PictureLayoutFlagsKHR::INTERLACED_INTERLEAVED_LINES)
+            .std_profile_idc(100)
+    }
+    pub fn profile_info<'a>(&self, h264_profile_info: &'a mut VideoDecodeH264ProfileInfoKHR<'_>) -> VideoProfileInfoKHR<'a> {
+        VideoProfileInfoKHR::default()
+            .push_next(h264_profile_info)
+            .video_codec_operation(VideoCodecOperationFlagsKHR::DECODE_H264)
+            .chroma_subsampling(VideoChromaSubsamplingFlagsKHR::TYPE_420)
+            .luma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .chroma_bit_depth(VideoComponentBitDepthFlagsKHR::TYPE_8)
+    }
+    pub fn profile_list_info<'a>(&self, profiles: &'a [VideoProfileInfoKHR<'_>]) -> VideoProfileListInfoKHR<'a> {
+        VideoProfileListInfoKHR::default().profiles(profiles)
     }
 }
 
@@ -96,8 +82,9 @@ mod test {
     #[test]
     fn get_profile_info_list() -> Result<(), Error> {
         let inspector = H264StreamInspector::new();
-        let mut profiles = inspector.profiles();
-        let infos = unsafe { &mut profiles.as_mut().get_unchecked_mut().list };
+        let mut h264_profile_info = inspector.h264_profile_info();
+        let profiles = &[inspector.profile_info(&mut h264_profile_info)];
+        let infos = inspector.profile_list_info(profiles);
 
         unsafe {
             assert_eq!(infos.profile_count, 1);
