@@ -23,6 +23,7 @@ impl VideoSessionParametersShared {
         let native_device = shared_session.device().native();
         let native_queue_fns = shared_session.queue_fns();
 
+        // bind nested pointers with lifetime safety to stack ownership
         let sps1 = stream_inspector.h264_sps();
         let sps2 = sps1.step2();
         let sps3 = sps2.step3();
