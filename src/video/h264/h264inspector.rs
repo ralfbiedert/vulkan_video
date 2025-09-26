@@ -54,7 +54,7 @@ impl H264StreamInspector {
 
     pub fn h264_profile_info<'a>(&self) -> VideoDecodeH264ProfileInfoKHR<'a> {
         VideoDecodeH264ProfileInfoKHR::default()
-            .picture_layout(VideoDecodeH264PictureLayoutFlagsKHR::INTERLACED_INTERLEAVED_LINES)
+            .picture_layout(VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE)
             .std_profile_idc(100)
     }
     pub fn profile_info<'a>(&self, h264_profile_info: &'a mut VideoDecodeH264ProfileInfoKHR<'_>) -> VideoProfileInfoKHR<'a> {
