@@ -78,14 +78,10 @@ impl H264StreamInspector {
 }
 struct SpsInfo1<'a> {
     sps: &'a SeqParameterSet,
-    p_offset_for_ref_frame: Option<i32>,
-    p_scaling_lists: Option<StdVideoH264ScalingLists>,
     p_hrd_parameters: Option<StdVideoH264HrdParameters>,
 }
 impl<'a> SpsInfo1<'a> {
     fn new(sps: &'a SeqParameterSet) -> Self {
-        let p_offset_for_ref_frame = None;
-        let p_scaling_lists = None;
         let p_hrd_parameters = Some(StdVideoH264HrdParameters {
             cpb_cnt_minus1: 0,
             bit_rate_scale: 0,
@@ -99,14 +95,11 @@ impl<'a> SpsInfo1<'a> {
             dpb_output_delay_length_minus1: 0,
             time_offset_length: 0,
         });
-        SpsInfo1 {
-            sps,
-            p_offset_for_ref_frame,
-            p_scaling_lists,
-            p_hrd_parameters,
-        }
+        SpsInfo1 { sps, p_hrd_parameters }
     }
     fn step2<'b>(&'b self) -> SpsInfo2<'b> {
+        let p_offset_for_ref_frame = None;
+        let p_scaling_lists = None;
         let p_sequence_parameter_set_vui = self.sps.vui_parameters.as_ref().map(|vui| {
             let mut flags = StdVideoH264SpsVuiFlags {
                 _bitfield_align_1: [],
@@ -157,7 +150,9 @@ impl<'a> SpsInfo1<'a> {
         });
 
         SpsInfo2 {
-            info1: self,
+            sps: self.sps,
+            p_offset_for_ref_frame,
+            p_scaling_lists,
             p_sequence_parameter_set_vui,
         }
     }
@@ -179,7 +174,9 @@ impl SpsStep1<'_> {
 }
 
 struct SpsInfo2<'a> {
-    info1: &'a SpsInfo1<'a>,
+    sps: &'a SeqParameterSet,
+    p_offset_for_ref_frame: Option<i32>,
+    p_scaling_lists: Option<StdVideoH264ScalingLists>,
     p_sequence_parameter_set_vui: Option<StdVideoH264SequenceParameterSetVui>,
 }
 pub struct SpsStep2<'a> {
@@ -190,36 +187,35 @@ impl SpsStep2<'_> {
         let sps = self
             .sps_infos
             .iter()
-            .map(|sps_info2| {
-                let sps_info1 = sps_info2.info1;
-                // let frame_crop_left_offset = sps_info1.sps.frame_cropping.map(|f| f.left_offset).unwrap_or(0);
-                // let frame_crop_right_offset = sps_info1.sps.frame_cropping.map(|f| f.right_offset).unwrap_or(0);
-                // let frame_crop_top_offset = sps_info1.sps.frame_cropping.map(|f| f.top_offset).unwrap_or(0);
-                // let frame_crop_bottom_offset = sps_info1.sps.frame_cropping.map(|f| f.bottom_offset).unwrap_or(0);
+            .map(|sps_info| {
+                // let frame_crop_left_offset = sps_info.sps.frame_cropping.map(|f| f.left_offset).unwrap_or(0);
+                // let frame_crop_right_offset = sps_info.sps.frame_cropping.map(|f| f.right_offset).unwrap_or(0);
+                // let frame_crop_top_offset = sps_info.sps.frame_cropping.map(|f| f.top_offset).unwrap_or(0);
+                // let frame_crop_bottom_offset = sps_info.sps.frame_cropping.map(|f| f.bottom_offset).unwrap_or(0);
                 // let mut flags = StdVideoH264SpsFlags {
                 //     _bitfield_align_1: [],
                 //     _bitfield_1: Default::default(),
                 //     __bindgen_padding_0: 0,
                 // };
-                // flags.set_constraint_set0_flag(sps_info1.sps.constraint_flags.flag0() as u32);
-                // flags.set_constraint_set1_flag(sps_info1.sps.constraint_flags.flag1() as u32);
-                // flags.set_constraint_set2_flag(sps_info1.sps.constraint_flags.flag2() as u32);
-                // flags.set_constraint_set3_flag(sps_info1.sps.constraint_flags.flag3() as u32);
-                // flags.set_constraint_set4_flag(sps_info1.sps.constraint_flags.flag4() as u32);
-                // flags.set_constraint_set5_flag(sps_info1.sps.constraint_flags.flag5() as u32);
+                // flags.set_constraint_set0_flag(sps_info.sps.constraint_flags.flag0() as u32);
+                // flags.set_constraint_set1_flag(sps_info.sps.constraint_flags.flag1() as u32);
+                // flags.set_constraint_set2_flag(sps_info.sps.constraint_flags.flag2() as u32);
+                // flags.set_constraint_set3_flag(sps_info.sps.constraint_flags.flag3() as u32);
+                // flags.set_constraint_set4_flag(sps_info.sps.constraint_flags.flag4() as u32);
+                // flags.set_constraint_set5_flag(sps_info.sps.constraint_flags.flag5() as u32);
                 // flags.set_vui_parameters_present_flag(sps_info2.p_sequence_parameter_set_vui.is_some() as u32);
                 // StdVideoH264SequenceParameterSet {
-                //     profile_idc: sps_info1.sps.profile_idc.to_u8(),
-                //     level_idc: sps_info1.sps.level_idc as u32,
-                //     seq_parameter_set_id: sps_info1.sps.seq_parameter_set_id.id(),
-                //     log2_max_frame_num_minus4: sps_info1.sps.log2_max_frame_num_minus4,
-                //     max_num_ref_frames: sps_info1.sps.max_num_ref_frames as u8,
-                //     pic_width_in_mbs_minus1: sps_info1.sps.pic_width_in_mbs_minus1,
-                //     pic_height_in_map_units_minus1: sps_info1.sps.pic_height_in_map_units_minus1,
-                //     chroma_format_idc: sps_info1.sps.chroma_info.chroma_format.id(),
-                //     bit_depth_luma_minus8: sps_info1.sps.chroma_info.bit_depth_luma_minus8,
-                //     bit_depth_chroma_minus8: sps_info1.sps.chroma_info.bit_depth_chroma_minus8,
-                //     pic_order_cnt_type: sps_info1.sps.pic_order_cnt.id(),
+                //     profile_idc: sps_info.sps.profile_idc.to_u8(),
+                //     level_idc: sps_info.sps.level_idc as u32,
+                //     seq_parameter_set_id: sps_info.sps.seq_parameter_set_id.id(),
+                //     log2_max_frame_num_minus4: sps_info.sps.log2_max_frame_num_minus4,
+                //     max_num_ref_frames: sps_info.sps.max_num_ref_frames as u8,
+                //     pic_width_in_mbs_minus1: sps_info.sps.pic_width_in_mbs_minus1,
+                //     pic_height_in_map_units_minus1: sps_info.sps.pic_height_in_map_units_minus1,
+                //     chroma_format_idc: sps_info.sps.chroma_info.chroma_format.id(),
+                //     bit_depth_luma_minus8: sps_info.sps.chroma_info.bit_depth_luma_minus8,
+                //     bit_depth_chroma_minus8: sps_info.sps.chroma_info.bit_depth_chroma_minus8,
+                //     pic_order_cnt_type: sps_info.sps.pic_order_cnt.id(),
                 //     flags,
                 //     frame_crop_left_offset,
                 //     frame_crop_right_offset,
@@ -233,9 +229,9 @@ impl SpsStep2<'_> {
                 //     offset_for_top_to_bottom_field: 0,
                 //     log2_max_pic_order_cnt_lsb_minus4: 0,
                 //     num_ref_frames_in_pic_order_cnt_cycle: 0,
-                //     pOffsetForRefFrame: sps_info1.p_offset_for_ref_frame.as_ref().map_or(null(), |p| p),
-                //     pScalingLists: sps_info1.p_scaling_lists.as_ref().map_or(null(), |p| p),
-                //     pSequenceParameterSetVui: sps_info1.p_sequence_parameter_set_vui.as_ref().map_or(null(), |p| p),
+                //     pOffsetForRefFrame: sps_info.p_offset_for_ref_frame.as_ref().map_or(null(), |p| p),
+                //     pScalingLists: sps_info.p_scaling_lists.as_ref().map_or(null(), |p| p),
+                //     pSequenceParameterSetVui: sps_info.p_sequence_parameter_set_vui.as_ref().map_or(null(), |p| p),
                 //     reserved1: 0,
                 //     reserved2: 0,
                 // }
@@ -271,9 +267,9 @@ impl SpsStep2<'_> {
                     frame_crop_top_offset: 0,
                     frame_crop_bottom_offset: 0,
                     reserved2: 0,
-                    pOffsetForRefFrame: sps_info1.p_offset_for_ref_frame.as_ref().map_or(null(), |p| p),
-                    pScalingLists: sps_info1.p_scaling_lists.as_ref().map_or(null(), |p| p),
-                    pSequenceParameterSetVui: sps_info2.p_sequence_parameter_set_vui.as_ref().map_or(null(), |p| p),
+                    pOffsetForRefFrame: sps_info.p_offset_for_ref_frame.as_ref().map_or(null(), |p| p),
+                    pScalingLists: sps_info.p_scaling_lists.as_ref().map_or(null(), |p| p),
+                    pSequenceParameterSetVui: sps_info.p_sequence_parameter_set_vui.as_ref().map_or(null(), |p| p),
                 }
             })
             .collect();
