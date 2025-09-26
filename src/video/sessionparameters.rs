@@ -24,13 +24,14 @@ impl VideoSessionParametersShared {
         let native_queue_fns = shared_session.queue_fns();
 
         let sps1 = stream_inspector.h264_sps();
-        let pps1 = stream_inspector.h264_pps();
-
         let sps2 = sps1.step2();
+        let sps3 = sps2.step3();
+
+        let pps1 = stream_inspector.h264_pps();
         let pps2 = pps1.step2();
 
         let create_info = VideoDecodeH264SessionParametersAddInfoKHR::default()
-            .std_sp_ss(sps2.array())
+            .std_sp_ss(sps3.array())
             .std_pp_ss(pps2.array());
 
         let mut video_decode_h264session_parameters_create_info = VideoDecodeH264SessionParametersCreateInfoKHR::default()
