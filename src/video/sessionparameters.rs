@@ -31,9 +31,15 @@ impl VideoSessionParametersShared {
         let pps1 = stream_inspector.h264_pps();
         let pps2 = pps1.step2();
 
+        let sps_array = sps3.array();
+        let pps_array = pps2.array();
+
+        println!("#sps={}", sps_array.len());
+        println!("#pps={}", pps_array.len());
+
         let create_info = VideoDecodeH264SessionParametersAddInfoKHR::default()
-            .std_sp_ss(sps3.array())
-            .std_pp_ss(pps2.array());
+            .std_sp_ss(sps_array)
+            .std_pp_ss(pps_array);
 
         let mut video_decode_h264session_parameters_create_info = VideoDecodeH264SessionParametersCreateInfoKHR::default()
             .max_std_sps_count(32)
