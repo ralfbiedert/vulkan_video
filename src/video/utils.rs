@@ -2,16 +2,16 @@ use core::iter::Enumerate;
 use core::slice::Iter as SliceIter;
 use h264_reader::nal::RefNal;
 
+// How many `0` we have to observe before a `1` means NAL.
+const NAL_MIN_0_COUNT: usize = 2;
 /// Advances the given iterator until it finds the index of the next NAL start.
 #[inline]
 fn next_offset<'a>(iter: &mut Enumerate<SliceIter<'a, u8>>) -> Option<usize> {
-    // How many `0` we have to observe before a `1` means NAL.
-    const NAL_MIN_0_COUNT: usize = 2;
     let mut count_0 = 0;
     for (offset, byte) in iter {
         match byte {
             0 => count_0 += 1,
-            1 if count_0 >= NAL_MIN_0_COUNT => return Some(offset - NAL_MIN_0_COUNT),
+            1 if count_0 >= NAL_MIN_0_COUNT => return Some(offset + 1),
             _ => count_0 = 0,
         }
     }
@@ -55,10 +55,17 @@ impl<'a> Iterator for NalUnits<'a> {
         let offset = self.next_offset?;
         self.next_offset = next_offset(&mut self.iter);
         let nal = match self.next_offset {
-            Some(next_offset) => &self.stream[offset..next_offset],
+            // Do not include 001 in nal buffer
+            Some(next_offset) => &self.stream[offset..next_offset - (NAL_MIN_0_COUNT + 1)],
             None => &self.stream[offset..],
         };
-        Some(RefNal::new(nal, &[], true))
+
+        // required by RefNal::new
+        if nal.is_empty() {
+            None
+        } else {
+            Some(RefNal::new(nal, &[], true))
+        }
     }
 }
 
@@ -75,33 +82,31 @@ mod test {
         assert!(nal_units(&stream).next().is_none());
 
         let stream = [0, 0, 1];
-        assert_eq!(nal_units(&stream).next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        // nal unit is "empty", so no RefNal is produced
+        assert!(nal_units(&stream).next().is_none());
 
         let stream = [0, 0, 1, 2];
-        assert_eq!(nal_units(&stream).next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
+        assert_eq!(nal_units(&stream).next().unwrap(), RefNal::new(&[2], &[], true));
 
         let stream = [0, 0, 1, 2, 0, 0, 1];
         let mut split = nal_units(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert_eq!(split.next().unwrap(), RefNal::new(&[2], &[], true));
         assert!(split.next().is_none());
 
         let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0, 1];
         let mut split = nal_units(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert_eq!(split.next().unwrap(), RefNal::new(&[2], &[], true));
         assert!(split.next().is_none());
 
         let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0];
         let mut split = nal_units(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 0, 0], &[], true));
+        assert_eq!(split.next().unwrap(), RefNal::new(&[2, 0, 0], &[], true));
         assert!(split.next().is_none());
 
         let stream = [0, 0, 0, 0, 0, 1, 2, 0, 0, 1, 2, 3, 0, 0, 1];
         let mut split = nal_units(&stream);
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1, 2, 3], &[], true));
-        assert_eq!(split.next().unwrap(), RefNal::new(&[0, 0, 1], &[], true));
+        assert_eq!(split.next().unwrap(), RefNal::new(&[2], &[], true));
+        assert_eq!(split.next().unwrap(), RefNal::new(&[2, 3], &[], true));
         assert!(split.next().is_none());
     }
 }
