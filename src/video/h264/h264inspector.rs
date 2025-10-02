@@ -9,9 +9,6 @@ use h264_reader::nal::sps::{SeqParameterSet, SpsError};
 use h264_reader::nal::{Nal, NalHeader, NalHeaderError, RefNal, UnitType};
 use h264_reader::push::{NalFragmentHandler, NalInterest};
 use h264_reader::Context;
-use std::marker::PhantomPinned;
-use std::pin::Pin;
-use std::ptr::addr_of;
 
 /// Parses H.264 NAL units and returns mata data we need to feed into Vulkan.
 #[derive(Default)]
@@ -31,6 +28,10 @@ impl H264StreamInspector {
         Self {
             h264_context: Default::default(),
         }
+    }
+
+    pub fn context(&self) -> &Context {
+        &self.h264_context
     }
 
     pub fn feed_nal(&mut self, nal: RefNal<'_>) -> Result<(), FeedError> {
