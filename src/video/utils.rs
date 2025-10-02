@@ -32,7 +32,7 @@ fn next_offset<'a>(iter: &mut Enumerate<SliceIter<'a, u8>>) -> Option<usize> {
 ///
 /// This function will return an iterator returning packets:
 /// ```text
-///      [001.......][001....][001.....]
+///      001[.......]001[....]001[.....]
 /// ```
 ///
 /// In other words, any incomplete data at the beginning of the buffer is skipped,
