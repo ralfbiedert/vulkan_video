@@ -244,7 +244,7 @@ mod test {
     use crate::queue::Queue;
     use crate::resources::{Buffer, BufferInfo, ImageInfo, ImageView, ImageViewInfo, UnboundImage};
     use crate::video::h264::H264StreamInspector;
-    use crate::video::{VideoSession, VideoSessionParameters};
+    use crate::video::{nal_units, VideoSession, VideoSessionParameters};
     use ash::vk::{
         Extent3D, Format, ImageAspectFlags, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, ImageViewType, SampleCountFlags,
     };
@@ -254,7 +254,10 @@ mod test {
     fn decode_h264() -> Result<(), Error> {
         let h264_data = include_bytes!("../../tests/videos/multi_512x512.h264");
 
-        let stream_inspector = H264StreamInspector::new();
+        let mut stream_inspector = H264StreamInspector::new();
+        for nal in nal_units(h264_data) {
+            stream_inspector.feed_nal(nal).unwrap();
+        }
         let instance_info = InstanceInfo::new().app_name("MyApp")?.app_version(100).validation(true);
         let instance = Instance::new(&instance_info)?;
         let physical_device = PhysicalDevice::new_any(&instance)?;
