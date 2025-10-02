@@ -100,6 +100,9 @@ mod test {
             inspector.feed_nal(nal).unwrap();
         }
 
+        assert!(inspector.h264_context.sps().count() != 0);
+        assert!(inspector.h264_context.pps().count() != 0);
+
         Ok(())
     }
 }
