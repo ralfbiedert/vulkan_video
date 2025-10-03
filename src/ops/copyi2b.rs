@@ -3,8 +3,8 @@ use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared, Image, ImageShared};
 use ash::vk::{
-    AccessFlags2, BufferImageCopy, DependencyInfoKHR, ImageAspectFlags, ImageLayout, ImageMemoryBarrier2, ImageSubresourceLayers,
-    ImageSubresourceRange, PipelineStageFlags2, QUEUE_FAMILY_IGNORED,
+    BufferImageCopy, DependencyFlags, ImageAspectFlags, ImageLayout, ImageMemoryBarrier, ImageSubresourceLayers, ImageSubresourceRange,
+    PipelineStageFlags, QUEUE_FAMILY_IGNORED,
 };
 use std::rc::Rc;
 use std::sync::Arc;
@@ -46,40 +46,42 @@ impl AddToCommandBuffer for CopyImage2Buffer {
             .level_count(1)
             .layer_count(1);
 
-        let barrier_acquire = ImageMemoryBarrier2::default()
-            .src_stage_mask(PipelineStageFlags2::NONE)
-            .src_access_mask(AccessFlags2::NONE)
-            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+        let barrier_acquire = ImageMemoryBarrier::default()
             .old_layout(ImageLayout::UNDEFINED)
-            .dst_stage_mask(PipelineStageFlags2::COPY)
-            .dst_access_mask(AccessFlags2::NONE)
-            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
             .new_layout(ImageLayout::GENERAL)
             .image(native_image)
-            .subresource_range(ssr);
-
-        let barrier_release = ImageMemoryBarrier2::default()
-            .src_stage_mask(PipelineStageFlags2::COPY)
-            .src_access_mask(AccessFlags2::NONE)
+            .subresource_range(ssr)
             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
+
+        let barrier_release = ImageMemoryBarrier::default()
             .old_layout(ImageLayout::GENERAL)
-            .dst_stage_mask(PipelineStageFlags2::BOTTOM_OF_PIPE)
-            .dst_access_mask(AccessFlags2::NONE_KHR)
-            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
             .new_layout(ImageLayout::GENERAL)
             .image(native_image)
-            .subresource_range(ssr);
-
-        let acquire_barriers = &[barrier_acquire];
-        let release_barriers = &[barrier_release];
-
-        let dependency_info_acquire = DependencyInfoKHR::default().image_memory_barriers(acquire_barriers);
-        let dependency_info_release = DependencyInfoKHR::default().image_memory_barriers(release_barriers);
+            .subresource_range(ssr)
+            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
 
         unsafe {
-            native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info_acquire);
+            native_device.cmd_pipeline_barrier(
+                native_command_buffer,
+                PipelineStageFlags::TRANSFER,
+                PipelineStageFlags::TRANSFER,
+                DependencyFlags::empty(),
+                &[],
+                &[],
+                &[barrier_acquire],
+            );
             native_device.cmd_copy_image_to_buffer(native_command_buffer, native_image, ImageLayout::GENERAL, native_buffer, &[copy]);
-            native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info_release);
+            native_device.cmd_pipeline_barrier(
+                native_command_buffer,
+                PipelineStageFlags::TRANSFER,
+                PipelineStageFlags::TRANSFER,
+                DependencyFlags::empty(),
+                &[],
+                &[],
+                &[barrier_release],
+            );
             Ok(())
         }
     }
