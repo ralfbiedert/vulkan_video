@@ -100,7 +100,7 @@ impl<T: ShaderParameterSet> AddToCommandBuffer for Compute<T> {
                             .size(*size)
                             .buffer(*native)
                             .src_access_mask(AccessFlags::MEMORY_READ | AccessFlags::MEMORY_WRITE)
-                            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+                            .src_queue_family_index(builder.queue_family_index())
                             .dst_access_mask(AccessFlags::MEMORY_READ | AccessFlags::MEMORY_WRITE)
                             .dst_queue_family_index(builder.queue_family_index());
 
@@ -110,7 +110,7 @@ impl<T: ShaderParameterSet> AddToCommandBuffer for Compute<T> {
                             .src_access_mask(AccessFlags::MEMORY_READ | AccessFlags::MEMORY_WRITE)
                             .src_queue_family_index(builder.queue_family_index())
                             .dst_access_mask(AccessFlags::MEMORY_READ | AccessFlags::MEMORY_WRITE)
-                            .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
+                            .dst_queue_family_index(builder.queue_family_index());
 
                         acquire_buffer.push(barrier_acquire);
                         release_buffer.push(barrier_release);
