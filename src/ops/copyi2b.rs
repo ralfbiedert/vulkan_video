@@ -3,8 +3,8 @@ use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared, Image, ImageShared};
 use ash::vk::{
-    BufferImageCopy, DependencyFlags, ImageAspectFlags, ImageLayout, ImageMemoryBarrier, ImageSubresourceLayers, ImageSubresourceRange,
-    PipelineStageFlags, QUEUE_FAMILY_IGNORED,
+    AccessFlags, BufferImageCopy, DependencyFlags, ImageAspectFlags, ImageLayout, ImageMemoryBarrier, ImageSubresourceLayers,
+    ImageSubresourceRange, PipelineStageFlags, QUEUE_FAMILY_IGNORED,
 };
 use std::rc::Rc;
 use std::sync::Arc;
@@ -51,6 +51,8 @@ impl AddToCommandBuffer for CopyImage2Buffer {
             .new_layout(ImageLayout::GENERAL)
             .image(native_image)
             .subresource_range(ssr)
+            .src_access_mask(AccessFlags::empty())
+            .dst_access_mask(AccessFlags::TRANSFER_READ)
             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
             .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
 
@@ -59,13 +61,15 @@ impl AddToCommandBuffer for CopyImage2Buffer {
             .new_layout(ImageLayout::GENERAL)
             .image(native_image)
             .subresource_range(ssr)
+            .src_access_mask(AccessFlags::TRANSFER_READ)
+            .dst_access_mask(AccessFlags::empty())
             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
             .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
 
         unsafe {
             native_device.cmd_pipeline_barrier(
                 native_command_buffer,
-                PipelineStageFlags::TRANSFER,
+                PipelineStageFlags::empty(),
                 PipelineStageFlags::TRANSFER,
                 DependencyFlags::empty(),
                 &[],
@@ -76,7 +80,7 @@ impl AddToCommandBuffer for CopyImage2Buffer {
             native_device.cmd_pipeline_barrier(
                 native_command_buffer,
                 PipelineStageFlags::TRANSFER,
-                PipelineStageFlags::TRANSFER,
+                PipelineStageFlags::empty(),
                 DependencyFlags::empty(),
                 &[],
                 &[],
