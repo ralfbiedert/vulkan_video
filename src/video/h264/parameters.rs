@@ -103,17 +103,17 @@ impl<'a> SpsInfo1<'a> {
                     sar_width = w;
                     sar_height = h;
                 }
-                aspect_ratio_idc = aspect_ratio_info_to_u8(aspect_ratio_info) as u32;
+                aspect_ratio_idc = aspect_ratio_info.to_u8() as u32;
             }
             flags.set_aspect_ratio_info_present_flag(vui.aspect_ratio_info.is_some() as u32);
 
             // video_signal_type
-            let mut video_format = video_format_to_u8(&h264_reader::nal::sps::VideoFormat::Unspecified);
+            let mut video_format = h264_reader::nal::sps::VideoFormat::NTSC.to_u8();
             let mut colour_primaries = 2;
             let mut transfer_characteristics = 2;
             let mut matrix_coefficients = 2;
             if let Some(video_signal_type) = &vui.video_signal_type {
-                video_format = video_format_to_u8(&video_signal_type.video_format);
+                video_format = video_signal_type.video_format.to_u8();
                 if let Some(colour_description) = &video_signal_type.colour_description {
                     colour_primaries = colour_description.colour_primaries;
                     transfer_characteristics = colour_description.transfer_characteristics;
@@ -264,7 +264,7 @@ impl SpsInfo2<'_> {
             flags,
             profile_idc: profile_idc as u32,
             level_idc: self.sps.level_idc as u32,
-            chroma_format_idc: chroma_format_to_u32(self.sps.chroma_info.chroma_format),
+            chroma_format_idc: self.sps.chroma_info.chroma_format.to_u32(),
             seq_parameter_set_id: self.sps.seq_parameter_set_id.id(),
             bit_depth_luma_minus8: self.sps.chroma_info.bit_depth_luma_minus8,
             bit_depth_chroma_minus8: self.sps.chroma_info.bit_depth_chroma_minus8,
@@ -375,53 +375,5 @@ impl<'a> PpsInfo1<'a> {
             second_chroma_qp_index_offset: self.pps.extension.as_ref().map_or(0, |ex| ex.second_chroma_qp_index_offset as i8),
             pScalingLists: self.p_scaling_lists.as_ref().map_or(null(), |p| p),
         }
-    }
-}
-
-// helper functions to be removed when they land in h264-reader upstream
-use h264_reader::nal::sps::ChromaFormat;
-pub fn chroma_format_to_u32(value: ChromaFormat) -> u32 {
-    match value {
-        ChromaFormat::Monochrome => 0,
-        ChromaFormat::YUV420 => 1,
-        ChromaFormat::YUV422 => 2,
-        ChromaFormat::YUV444 => 3,
-        ChromaFormat::Invalid(chroma_format_idc) => chroma_format_idc,
-    }
-}
-use h264_reader::nal::sps::AspectRatioInfo;
-pub fn aspect_ratio_info_to_u8(value: &AspectRatioInfo) -> u8 {
-    match value {
-        AspectRatioInfo::Unspecified => 0,
-        AspectRatioInfo::Ratio1_1 => 1,
-        AspectRatioInfo::Ratio12_11 => 2,
-        AspectRatioInfo::Ratio10_11 => 3,
-        AspectRatioInfo::Ratio16_11 => 4,
-        AspectRatioInfo::Ratio40_33 => 5,
-        AspectRatioInfo::Ratio24_11 => 6,
-        AspectRatioInfo::Ratio20_11 => 7,
-        AspectRatioInfo::Ratio32_11 => 8,
-        AspectRatioInfo::Ratio80_33 => 9,
-        AspectRatioInfo::Ratio18_11 => 10,
-        AspectRatioInfo::Ratio15_11 => 11,
-        AspectRatioInfo::Ratio64_33 => 12,
-        AspectRatioInfo::Ratio160_99 => 13,
-        AspectRatioInfo::Ratio4_3 => 14,
-        AspectRatioInfo::Ratio3_2 => 15,
-        AspectRatioInfo::Ratio2_1 => 16,
-        AspectRatioInfo::Reserved(aspect_ratio_idc) => *aspect_ratio_idc,
-        AspectRatioInfo::Extended(..) => 255,
-    }
-}
-use h264_reader::nal::sps::VideoFormat;
-pub fn video_format_to_u8(value: &VideoFormat) -> u8 {
-    match value {
-        VideoFormat::Component => 0,
-        VideoFormat::PAL => 1,
-        VideoFormat::NTSC => 2,
-        VideoFormat::SECAM => 3,
-        VideoFormat::MAC => 4,
-        VideoFormat::Unspecified => 5,
-        VideoFormat::Reserved(video_format) => *video_format,
     }
 }
