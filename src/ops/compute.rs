@@ -280,7 +280,7 @@ mod test {
         let physical_device = PhysicalDevice::new_any(&instance)?;
         let device = Device::new(&physical_device)?;
         let image_info = ImageInfo::new()
-            .format(Format::A8B8G8R8_SNORM_PACK32)
+            .format(Format::R8G8B8A8_SNORM)
             .samples(SampleCountFlags::TYPE_1)
             .usage(ImageUsageFlags::TRANSFER_SRC | ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::SAMPLED | ImageUsageFlags::STORAGE)
             .mip_levels(1)
@@ -304,7 +304,7 @@ mod test {
 
         let image_view_info = ImageViewInfo::new()
             .aspect_mask(ImageAspectFlags::COLOR)
-            .format(Format::A8B8G8R8_SNORM_PACK32)
+            .format(Format::R8G8B8A8_SNORM)
             .image_view_type(ImageViewType::TYPE_2D)
             .layer_count(1)
             .level_count(1);
