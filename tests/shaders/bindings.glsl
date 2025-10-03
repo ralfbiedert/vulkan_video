@@ -22,7 +22,7 @@ layout(std430, set = 0, binding = 3) buffer _x3 {
 
 layout(set = 0, binding = 4) uniform sampler2D input_texture;
 
-layout(set = 0, binding = 5, rgba8) uniform image2D input_output_texture[4];
+layout(set = 0, binding = 5, rgba8_snorm) uniform image2D input_output_texture[4];
 
 layout(set = 0, binding = 6) uniform BufferObject {
     mat4 someMatrix;
