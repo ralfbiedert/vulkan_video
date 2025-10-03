@@ -66,9 +66,7 @@ impl AddToCommandBuffer for DecodeH264 {
         let native_decode_fns = shared_video_session.decode_fns();
         let native_command_buffer = builder.native_command_buffer();
         let native_view_dst = self.shared_image_view.native();
-        let native_view_ref = self.shared_ref_view.native();
         let native_image_dst = self.shared_image_view.image().native();
-        let native_image_ref = self.shared_ref_view.image().native();
         let native_video_session = shared_video_session.native();
         let native_video_session_parameters = self.shared_parameters.native();
 
@@ -86,7 +84,7 @@ impl AddToCommandBuffer for DecodeH264 {
             .level_count(1)
             .layer_count(1);
 
-        let image_barrier_dst = ImageMemoryBarrier2::default()
+        let image_acquire_dst = ImageMemoryBarrier2::default()
             .src_stage_mask(PipelineStageFlags2::NONE)
             .src_access_mask(AccessFlags2::NONE)
             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
@@ -112,9 +110,9 @@ impl AddToCommandBuffer for DecodeH264 {
 
         // bunch of let bindings to coerce stack allocated arrays to a slice and avoid using Vec
         let picture_resource_ref;
-        let image_barriers2;
+        let image_barriers_acquire2;
         let image_barriers_release2;
-        let image_barriers;
+        let image_barriers_acquire;
         let image_barriers_release;
 
         let picture_resource_choice = if self
@@ -124,17 +122,20 @@ impl AddToCommandBuffer for DecodeH264 {
             .flags()
             .contains(VideoDecodeCapabilityFlagsKHR::DPB_AND_OUTPUT_COINCIDE)
         {
-            image_barriers = core::slice::from_ref(&image_barrier_dst);
+            image_barriers_acquire = core::slice::from_ref(&image_acquire_dst);
             image_barriers_release = core::slice::from_ref(&image_release_dst);
 
             &picture_resource_dst
         } else {
+            let native_view_ref = self.shared_ref_view.native();
+            let native_image_ref = self.shared_ref_view.image().native();
+
             picture_resource_ref = VideoPictureResourceInfoKHR::default()
                 .coded_extent(extent)
                 .image_view_binding(native_view_ref);
 
             // conditionally create native_image_ref barriers
-            let image_barrier_ref = ImageMemoryBarrier2::default()
+            let image_acquire_ref = ImageMemoryBarrier2::default()
                 .src_stage_mask(PipelineStageFlags2::NONE)
                 .src_access_mask(AccessFlags2::NONE)
                 .src_queue_family_index(QUEUE_FAMILY_IGNORED)
@@ -158,9 +159,9 @@ impl AddToCommandBuffer for DecodeH264 {
                 .image(native_image_ref)
                 .subresource_range(ssr);
 
-            image_barriers2 = [image_barrier_dst, image_barrier_ref];
+            image_barriers_acquire2 = [image_acquire_dst, image_acquire_ref];
             image_barriers_release2 = [image_release_dst, image_release_ref];
-            image_barriers = &image_barriers2;
+            image_barriers_acquire = &image_barriers_acquire2;
             image_barriers_release = &image_barriers_release2;
 
             &picture_resource_ref
@@ -230,7 +231,7 @@ impl AddToCommandBuffer for DecodeH264 {
             .dst_picture_resource(picture_resource_dst)
             .setup_reference_slot(&video_reference_slot);
 
-        let buffer_barrier = BufferMemoryBarrier2::default()
+        let buffer_barrier_acquire = BufferMemoryBarrier2::default()
             .src_stage_mask(PipelineStageFlags2::HOST)
             .src_access_mask(AccessFlags2::HOST_WRITE)
             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
@@ -250,19 +251,19 @@ impl AddToCommandBuffer for DecodeH264 {
             .buffer(native_buffer_h264)
             .size(256 * 16);
 
-        let buffer_barriers = &[buffer_barrier];
+        let buffer_barriers_acquire = &[buffer_barrier_acquire];
         let buffer_barriers_release = &[buffer_barrier_release];
 
-        let dependency_info = DependencyInfoKHR::default()
-            .buffer_memory_barriers(buffer_barriers)
-            .image_memory_barriers(image_barriers);
+        let dependency_info_acquire = DependencyInfoKHR::default()
+            .buffer_memory_barriers(buffer_barriers_acquire)
+            .image_memory_barriers(image_barriers_acquire);
 
         let dependency_info_release = DependencyInfoKHR::default()
             .buffer_memory_barriers(buffer_barriers_release)
             .image_memory_barriers(image_barriers_release);
 
         unsafe {
-            native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info);
+            native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info_acquire);
             (native_queue_fns.cmd_begin_video_coding_khr)(native_command_buffer, &begin_coding_info);
             (native_queue_fns.cmd_control_video_coding_khr)(native_command_buffer, &video_coding_control);
             (native_decode_fns.cmd_decode_video_khr)(native_command_buffer, &video_decode_info);
