@@ -74,7 +74,7 @@ impl<T: ShaderParameterSet> AddToCommandBuffer for Compute<T> {
         let mut acquire_image = Vec::new();
         let mut acquire_buffer = Vec::new();
         let mut release_buffer = Vec::new();
-        let release_image = Vec::new();
+        let mut release_image = Vec::new();
 
         unsafe {
             let descriptor_set = self.native_descriptor_sets[0];
@@ -141,7 +141,7 @@ impl<T: ShaderParameterSet> AddToCommandBuffer for Compute<T> {
                             .level_count(1)
                             .layer_count(1);
 
-                        let barrier = ImageMemoryBarrier::default()
+                        let barrier_acquire = ImageMemoryBarrier::default()
                             .old_layout(ImageLayout::UNDEFINED)
                             .new_layout(ImageLayout::GENERAL)
                             .image(*native_image)
@@ -149,7 +149,16 @@ impl<T: ShaderParameterSet> AddToCommandBuffer for Compute<T> {
                             .src_queue_family_index(QUEUE_FAMILY_IGNORED)
                             .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
 
-                        acquire_image.push(barrier);
+                        let barrier_release = ImageMemoryBarrier::default()
+                            .old_layout(ImageLayout::GENERAL)
+                            .new_layout(ImageLayout::GENERAL)
+                            .image(*native_image)
+                            .subresource_range(ssr)
+                            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+                            .dst_queue_family_index(QUEUE_FAMILY_IGNORED);
+
+                        acquire_image.push(barrier_acquire);
+                        release_image.push(barrier_release);
                     }
                 }
             }
