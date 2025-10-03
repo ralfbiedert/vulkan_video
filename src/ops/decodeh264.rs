@@ -80,9 +80,91 @@ impl AddToCommandBuffer for DecodeH264 {
             .coded_extent(extent)
             .image_view_binding(native_view_dst);
 
-        let picture_resource_ref = VideoPictureResourceInfoKHR::default()
-            .coded_extent(extent)
-            .image_view_binding(native_view_ref);
+        // create native_image_dst barriers
+        let ssr = ImageSubresourceRange::default()
+            .aspect_mask(ImageAspectFlags::COLOR)
+            .level_count(1)
+            .layer_count(1);
+
+        let image_barrier_dst = ImageMemoryBarrier2::default()
+            .src_stage_mask(PipelineStageFlags2::NONE)
+            .src_access_mask(AccessFlags2::NONE)
+            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+            .old_layout(ImageLayout::UNDEFINED)
+            .dst_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
+            .dst_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
+            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
+            .new_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
+            .image(native_image_dst)
+            .subresource_range(ssr);
+
+        let image_release_dst = ImageMemoryBarrier2::default()
+            .src_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
+            .src_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
+            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+            .old_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
+            .dst_stage_mask(PipelineStageFlags2::BOTTOM_OF_PIPE)
+            .dst_access_mask(AccessFlags2::NONE_KHR)
+            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
+            .new_layout(ImageLayout::GENERAL)
+            .image(native_image_dst)
+            .subresource_range(ssr);
+
+        // bunch of let bindings to coerce stack allocated arrays to a slice and avoid using Vec
+        let picture_resource_ref;
+        let image_barriers2;
+        let image_barriers_release2;
+        let image_barriers;
+        let image_barriers_release;
+
+        let picture_resource_choice = if self
+            .shared_parameters
+            .video_session()
+            .decode_capabilities()
+            .flags()
+            .contains(VideoDecodeCapabilityFlagsKHR::DPB_AND_OUTPUT_COINCIDE)
+        {
+            image_barriers = core::slice::from_ref(&image_barrier_dst);
+            image_barriers_release = core::slice::from_ref(&image_release_dst);
+
+            &picture_resource_dst
+        } else {
+            picture_resource_ref = VideoPictureResourceInfoKHR::default()
+                .coded_extent(extent)
+                .image_view_binding(native_view_ref);
+
+            // conditionally create native_image_ref barriers
+            let image_barrier_ref = ImageMemoryBarrier2::default()
+                .src_stage_mask(PipelineStageFlags2::NONE)
+                .src_access_mask(AccessFlags2::NONE)
+                .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+                .old_layout(ImageLayout::UNDEFINED)
+                .dst_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
+                .dst_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
+                .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
+                .new_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
+                .image(native_image_ref)
+                .subresource_range(ssr);
+
+            let image_release_ref = ImageMemoryBarrier2::default()
+                .src_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
+                .src_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
+                .src_queue_family_index(QUEUE_FAMILY_IGNORED)
+                .old_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
+                .dst_stage_mask(PipelineStageFlags2::BOTTOM_OF_PIPE)
+                .dst_access_mask(AccessFlags2::NONE_KHR)
+                .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
+                .new_layout(ImageLayout::GENERAL)
+                .image(native_image_ref)
+                .subresource_range(ssr);
+
+            image_barriers2 = [image_barrier_dst, image_barrier_ref];
+            image_barriers_release2 = [image_release_dst, image_release_ref];
+            image_barriers = &image_barriers2;
+            image_barriers_release = &image_barriers_release2;
+
+            &picture_resource_ref
+        };
 
         let mut f = StdVideoDecodeH264ReferenceInfoFlags {
             _bitfield_align_1: [],
@@ -99,18 +181,6 @@ impl AddToCommandBuffer for DecodeH264 {
         };
 
         let mut video_decode_h264_dpb_slot_info = VideoDecodeH264DpbSlotInfoKHR::default().std_reference_info(&s);
-
-        let picture_resource_choice = if self
-            .shared_parameters
-            .video_session()
-            .decode_capabilities()
-            .flags()
-            .contains(VideoDecodeCapabilityFlagsKHR::DPB_AND_OUTPUT_COINCIDE)
-        {
-            &picture_resource_dst
-        } else {
-            &picture_resource_ref
-        };
 
         let video_reference_slot = VideoReferenceSlotInfoKHR::default()
             .push_next(&mut video_decode_h264_dpb_slot_info)
@@ -155,59 +225,6 @@ impl AddToCommandBuffer for DecodeH264 {
             .dst_picture_resource(picture_resource_dst)
             .setup_reference_slot(&video_reference_slot);
 
-        let ssr = ImageSubresourceRange::default()
-            .aspect_mask(ImageAspectFlags::COLOR)
-            .level_count(1)
-            .layer_count(1);
-
-        let image_barrier_dst = ImageMemoryBarrier2::default()
-            .src_stage_mask(PipelineStageFlags2::NONE)
-            .src_access_mask(AccessFlags2::NONE)
-            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .old_layout(ImageLayout::UNDEFINED)
-            .dst_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
-            .dst_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
-            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .new_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
-            .image(native_image_dst)
-            .subresource_range(ssr);
-
-        let image_barrier_ref = ImageMemoryBarrier2::default()
-            .src_stage_mask(PipelineStageFlags2::NONE)
-            .src_access_mask(AccessFlags2::NONE)
-            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .old_layout(ImageLayout::UNDEFINED)
-            .dst_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
-            .dst_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
-            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .new_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
-            .image(native_image_ref)
-            .subresource_range(ssr);
-
-        let image_release_dst = ImageMemoryBarrier2::default()
-            .src_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
-            .src_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
-            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .old_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
-            .dst_stage_mask(PipelineStageFlags2::BOTTOM_OF_PIPE)
-            .dst_access_mask(AccessFlags2::NONE_KHR)
-            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .new_layout(ImageLayout::GENERAL)
-            .image(native_image_dst)
-            .subresource_range(ssr);
-
-        let image_release_ref = ImageMemoryBarrier2::default()
-            .src_stage_mask(PipelineStageFlags2::VIDEO_DECODE_KHR)
-            .src_access_mask(AccessFlags2::VIDEO_DECODE_WRITE_KHR)
-            .src_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .old_layout(ImageLayout::VIDEO_DECODE_DPB_KHR)
-            .dst_stage_mask(PipelineStageFlags2::BOTTOM_OF_PIPE)
-            .dst_access_mask(AccessFlags2::NONE_KHR)
-            .dst_queue_family_index(QUEUE_FAMILY_IGNORED)
-            .new_layout(ImageLayout::GENERAL)
-            .image(native_image_ref)
-            .subresource_range(ssr);
-
         let buffer_barrier = BufferMemoryBarrier2::default()
             .src_stage_mask(PipelineStageFlags2::HOST)
             .src_access_mask(AccessFlags2::HOST_WRITE)
@@ -230,8 +247,6 @@ impl AddToCommandBuffer for DecodeH264 {
 
         let buffer_barriers = &[buffer_barrier];
         let buffer_barriers_release = &[buffer_barrier_release];
-        let image_barriers = &[image_barrier_dst, image_barrier_ref];
-        let image_barriers_release = &[image_release_dst, image_release_ref];
 
         let dependency_info = DependencyInfoKHR::default()
             .buffer_memory_barriers(buffer_barriers)
