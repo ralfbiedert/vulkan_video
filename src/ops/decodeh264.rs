@@ -29,13 +29,19 @@ impl DecodeInfo {
     }
 }
 
+// TODO:
+// own images in state
+// own reference info in state
+// construct various small structs eventually pointing to reference images and reference info on the fly each frame decoded
+
+const REFERENCE_IMAGES: usize = 16;
+
 /// Decode a H.264 video frame.
-pub struct DecodeH264<'a> {
+pub struct DecodeH264 {
     shared_parameters: Arc<VideoSessionParametersShared>,
     shared_buffer: Arc<BufferShared>,
-    shared_image_view: Rc<ImageViewShared>,
-    shared_ref_view: Rc<ImageViewShared>,
-    reference_slots: Vec<VideoReferenceSlotInfoKHR<'a>>,
+    reference_images: [ImageViewShared; REFERENCE_IMAGES],
+    reference_slots: Vec<StdVideoDecodeH264ReferenceInfo>,
 }
 
 pub struct DecodeH264Frame<'a> {
@@ -48,7 +54,7 @@ pub struct DecodeH264Frame<'a> {
     dependency_info_release: DependencyInfoKHR<'a>,
 }
 
-impl DecodeH264<'_> {
+impl DecodeH264 {
     pub fn new(buffer: &Buffer, video_session_parameters: &VideoSessionParameters, target_view: &ImageView, ref_view: &ImageView) -> Self {
         Self {
             shared_parameters: video_session_parameters.shared(),
