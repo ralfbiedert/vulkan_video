@@ -30,11 +30,12 @@ impl DecodeInfo {
 }
 
 /// Decode a H.264 video frame.
-pub struct DecodeH264 {
+pub struct DecodeH264<'a> {
     shared_parameters: Arc<VideoSessionParametersShared>,
     shared_buffer: Arc<BufferShared>,
     shared_image_view: Rc<ImageViewShared>,
     shared_ref_view: Rc<ImageViewShared>,
+    reference_slots: Vec<VideoReferenceSlotInfoKHR<'a>>,
 }
 
 pub struct DecodeH264Frame<'a> {
@@ -47,13 +48,14 @@ pub struct DecodeH264Frame<'a> {
     dependency_info_release: DependencyInfoKHR<'a>,
 }
 
-impl DecodeH264 {
+impl DecodeH264<'_> {
     pub fn new(buffer: &Buffer, video_session_parameters: &VideoSessionParameters, target_view: &ImageView, ref_view: &ImageView) -> Self {
         Self {
             shared_parameters: video_session_parameters.shared(),
             shared_buffer: buffer.shared(),
             shared_image_view: target_view.shared(),
             shared_ref_view: ref_view.shared(),
+            reference_slots: Vec::new(),
         }
     }
     pub fn next_frame<T>(&mut self, decode_info: DecodeInfo, mut f: impl FnMut(&DecodeH264Frame<'_>) -> T) -> T {
@@ -183,14 +185,14 @@ impl DecodeH264 {
             .slot_index(0)
             .picture_resource(picture_resource_choice);
 
-        let mut reference_slots = [video_reference_slot];
+        self.reference_slots.push(video_reference_slot);
         // mark the copy of video_reference_slot in reference_slots as "inactive"
-        reference_slots[0].slot_index = -1;
+        self.reference_slots.last_mut().unwrap().slot_index = -1;
 
         let begin_coding_info = VideoBeginCodingInfoKHR::default()
             .video_session(native_video_session)
             .video_session_parameters(native_video_session_parameters)
-            .reference_slots(&reference_slots);
+            .reference_slots(&self.reference_slots);
 
         let end_coding_info = VideoEndCodingInfoKHR::default();
 
