@@ -1,21 +1,33 @@
+use crate::ops::DecodeInfo;
 use core::iter::Enumerate;
 use core::slice::Iter as SliceIter;
 use h264_reader::nal::RefNal;
 
 // How many `0` we have to observe before a `1` means NAL.
 const NAL_MIN_0_COUNT: usize = 2;
-/// Advances the given iterator until it finds the index of the next NAL start.
-#[inline]
-fn next_offset<'a>(iter: &mut Enumerate<SliceIter<'a, u8>>) -> Option<usize> {
-    let mut count_0 = 0;
-    for (offset, byte) in iter {
-        match byte {
-            0 => count_0 += 1,
-            1 if count_0 >= NAL_MIN_0_COUNT => return Some(offset + 1),
-            _ => count_0 = 0,
-        }
+/// An iterator over NAL start locations.
+pub struct NalStartIter<'a> {
+    iter: Enumerate<SliceIter<'a, u8>>,
+}
+impl<'a> NalStartIter<'a> {
+    fn new(stream: &'a [u8]) -> Self {
+        let iter = stream.into_iter().enumerate();
+        Self { iter }
     }
-    None
+}
+impl<'a> Iterator for NalStartIter<'a> {
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut count_0 = 0;
+        for (offset, byte) in &mut self.iter {
+            match byte {
+                0 => count_0 += 1,
+                1 if count_0 >= NAL_MIN_0_COUNT => return Some(offset + 1),
+                _ => count_0 = 0,
+            }
+        }
+        None
+    }
 }
 
 /// Splits a bitstream into NAL units.
@@ -40,21 +52,26 @@ fn next_offset<'a>(iter: &mut Enumerate<SliceIter<'a, u8>>) -> Option<usize> {
 /// as-is.
 ///
 pub fn nal_units<'a>(stream: &'a [u8]) -> NalUnits<'a> {
-    let mut iter = stream.into_iter().enumerate();
-    let next_offset = next_offset(&mut iter);
-    NalUnits { stream, iter, next_offset }
+    let mut iter = NalStartIter::new(stream);
+    let next_nal_start = iter.next();
+    NalUnits {
+        stream,
+        iter,
+        next_nal_start,
+    }
 }
+/// An iterator over NAL units.
 pub struct NalUnits<'a> {
     stream: &'a [u8],
-    iter: Enumerate<SliceIter<'a, u8>>,
-    next_offset: Option<usize>,
+    iter: NalStartIter<'a>,
+    next_nal_start: Option<usize>,
 }
 impl<'a> Iterator for NalUnits<'a> {
     type Item = RefNal<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let offset = self.next_offset?;
-        self.next_offset = next_offset(&mut self.iter);
-        let nal = match self.next_offset {
+        let offset = self.next_nal_start?;
+        self.next_nal_start = self.iter.next();
+        let nal = match self.next_nal_start {
             // Do not include 001 in nal buffer
             Some(next_offset) => &self.stream[offset..next_offset - (NAL_MIN_0_COUNT + 1)],
             None => &self.stream[offset..],
