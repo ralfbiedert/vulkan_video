@@ -1,5 +1,5 @@
 use ash::vk::{Extent3D, Format, ImageAspectFlags, ImageLayout, ImageTiling, ImageType, ImageUsageFlags, ImageViewType, SampleCountFlags};
-use vulkan_video::ops::{AddToCommandBuffer, CopyImage2Buffer, DecodeH264, FillBuffer};
+use vulkan_video::ops::{AddToCommandBuffer, CopyImage2Buffer, DecodeH264, DecodeInfo, FillBuffer};
 use vulkan_video::resources::{Buffer, BufferInfo, ImageInfo, ImageView, ImageViewInfo, UnboundImage};
 use vulkan_video::video::h264::H264StreamInspector;
 use vulkan_video::video::{decode_info_iter, VideoSession, VideoSessionParameters};
@@ -64,13 +64,13 @@ fn decode_multiple_h264_frames() -> Result<(), Error> {
     let buffer_info_h264 = BufferInfo::new().size(1024 * 1024 * 4);
     let buffer_h264 = Buffer::new_video_decode(&allocation_h264, &buffer_info_h264, &stream_inspector)?;
 
-    buffer_h264.upload(h264_data)?;
-
     let allocation_output = Allocation::new(&device, 512 * 512 * 4, memory_host)?;
     let buffer_info_output = BufferInfo::new().size(512 * 512 * 4);
     let buffer_output = Buffer::new(&allocation_output, &buffer_info_output)?;
 
     for decode_info in decode_info_iter(h264_data) {
+        buffer_h264.upload(&h264_data[decode_info])?;
+
         let video_session = VideoSession::new(&device, &stream_inspector)?;
         let video_session_parameters = VideoSessionParameters::new(&video_session, &stream_inspector)?;
 
@@ -80,7 +80,7 @@ fn decode_multiple_h264_frames() -> Result<(), Error> {
             &video_session_parameters,
             &image_view_dst,
             &image_view_ref,
-            &decode_info,
+            &DecodeInfo::new(0, decode_info.size()),
         );
         let copy = CopyImage2Buffer::new(&image_dst, &buffer_output, ImageAspectFlags::PLANE_0);
 
