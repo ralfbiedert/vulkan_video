@@ -27,6 +27,16 @@ impl DecodeInfo {
     pub fn new(offset: u64, size: u64) -> Self {
         DecodeInfo { offset, size }
     }
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+}
+
+impl core::ops::Index<DecodeInfo> for [u8] {
+    type Output = Self;
+    fn index(&self, index: DecodeInfo) -> &Self::Output {
+        &self[index.offset as usize..(index.offset + index.size) as usize]
+    }
 }
 
 /// Decode a H.264 video frame.
