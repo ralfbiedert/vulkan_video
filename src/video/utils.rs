@@ -86,6 +86,40 @@ impl<'a> Iterator for NalUnits<'a> {
     }
 }
 
+/// The same as nal_units, but produces DecodeInfo describing the NAL segment.
+pub fn decode_info_iter<'a>(stream: &'a [u8]) -> DecodeInfoIter<'a> {
+    let mut iter = NalStartIter::new(stream);
+    let next_nal_start = iter.next();
+    DecodeInfoIter {
+        stream,
+        iter,
+        next_nal_start,
+    }
+}
+/// An iterator over DecodeInfo structs describing NAL unit locations.
+pub struct DecodeInfoIter<'a> {
+    stream: &'a [u8],
+    iter: NalStartIter<'a>,
+    next_nal_start: Option<usize>,
+}
+impl<'a> Iterator for DecodeInfoIter<'a> {
+    type Item = DecodeInfo;
+    fn next(&mut self) -> Option<Self::Item> {
+        let offset = self.next_nal_start?;
+        self.next_nal_start = self.iter.next();
+        let size = match self.next_nal_start {
+            Some(next_offset) => next_offset - (NAL_MIN_0_COUNT + 1) - offset,
+            None => self.stream.len() - offset,
+        };
+
+        if size == 0 {
+            None
+        } else {
+            Some(DecodeInfo::new(offset as u64, size as u64))
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
