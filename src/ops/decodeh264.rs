@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::ops::AddToCommandBuffer;
 use crate::queue::CommandBuilder;
 use crate::resources::{Buffer, BufferShared, ImageView, ImageViewShared};
-use crate::video::{VideoSessionParameters, VideoSessionParametersShared};
+use crate::video::{VideoSessionParameters, VideoSessionParametersShared, VideoSessionShared};
 use ash::vk::native::{
     StdVideoDecodeH264PictureInfo, StdVideoDecodeH264PictureInfoFlags, StdVideoDecodeH264ReferenceInfo,
     StdVideoDecodeH264ReferenceInfoFlags,
@@ -35,36 +35,31 @@ pub struct DecodeH264 {
     shared_buffer: Arc<BufferShared>,
     shared_image_view: Rc<ImageViewShared>,
     shared_ref_view: Rc<ImageViewShared>,
-    decode_info: DecodeInfo,
+}
+
+pub struct DecodeH264Frame<'a> {
+    shared_video_session: &'a VideoSessionShared,
+    dependency_info_acquire: DependencyInfoKHR<'a>,
+    begin_coding_info: VideoBeginCodingInfoKHR<'a>,
+    video_coding_control: VideoCodingControlInfoKHR<'a>,
+    video_decode_info: VideoDecodeInfoKHR<'a>,
+    end_coding_info: VideoEndCodingInfoKHR<'a>,
+    dependency_info_release: DependencyInfoKHR<'a>,
 }
 
 impl DecodeH264 {
-    pub fn new(
-        buffer: &Buffer,
-        video_session_parameters: &VideoSessionParameters,
-        target_view: &ImageView,
-        ref_view: &ImageView,
-        decode_info: &DecodeInfo,
-    ) -> Self {
+    pub fn new(buffer: &Buffer, video_session_parameters: &VideoSessionParameters, target_view: &ImageView, ref_view: &ImageView) -> Self {
         Self {
             shared_parameters: video_session_parameters.shared(),
             shared_buffer: buffer.shared(),
             shared_image_view: target_view.shared(),
             shared_ref_view: ref_view.shared(),
-            decode_info: *decode_info,
         }
     }
-}
-
-impl AddToCommandBuffer for DecodeH264 {
-    fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
-        let shared_video_session = self.shared_parameters.video_session();
+    pub fn next_frame<T>(&mut self, decode_info: DecodeInfo, mut f: impl FnMut(&DecodeH264Frame<'_>) -> T) -> T {
+        let shared_video_session = &self.shared_parameters.video_session();
 
         let native_buffer_h264 = self.shared_buffer.native();
-        let native_device = shared_video_session.device().native();
-        let native_queue_fns = shared_video_session.queue_fns();
-        let native_decode_fns = shared_video_session.decode_fns();
-        let native_command_buffer = builder.native_command_buffer();
         let native_view_dst = self.shared_image_view.native();
         let native_image_dst = self.shared_image_view.image().native();
         let native_video_session = shared_video_session.native();
@@ -167,15 +162,15 @@ impl AddToCommandBuffer for DecodeH264 {
             &picture_resource_ref
         };
 
-        let mut f = StdVideoDecodeH264ReferenceInfoFlags {
+        let mut flags = StdVideoDecodeH264ReferenceInfoFlags {
             _bitfield_align_1: [],
             _bitfield_1: Default::default(),
             __bindgen_padding_0: Default::default(),
         };
-        f.set_used_for_long_term_reference(1);
+        flags.set_used_for_long_term_reference(1);
 
         let s = StdVideoDecodeH264ReferenceInfo {
-            flags: f,
+            flags,
             FrameNum: 0,
             reserved: 0,
             PicOrderCnt: [0, 0],
@@ -225,8 +220,8 @@ impl AddToCommandBuffer for DecodeH264 {
         let video_decode_info = VideoDecodeInfoKHR::default()
             .push_next(&mut video_decode_info_h264)
             .src_buffer(native_buffer_h264)
-            .src_buffer_offset(self.decode_info.offset)
-            .src_buffer_range(self.decode_info.size)
+            .src_buffer_offset(decode_info.offset)
+            .src_buffer_range(decode_info.size)
             // .src_buffer_range(2736)
             .dst_picture_resource(picture_resource_dst)
             .setup_reference_slot(&video_reference_slot);
@@ -262,13 +257,33 @@ impl AddToCommandBuffer for DecodeH264 {
             .buffer_memory_barriers(buffer_barriers_release)
             .image_memory_barriers(image_barriers_release);
 
+        let decode_h264_frame = DecodeH264Frame {
+            shared_video_session,
+            dependency_info_acquire,
+            begin_coding_info,
+            video_coding_control,
+            video_decode_info,
+            end_coding_info,
+            dependency_info_release,
+        };
+
+        f(&decode_h264_frame)
+    }
+}
+
+impl AddToCommandBuffer for DecodeH264Frame<'_> {
+    fn run_in(&self, builder: &mut CommandBuilder) -> Result<(), Error> {
+        let native_command_buffer = builder.native_command_buffer();
+        let native_device = self.shared_video_session.device().native();
+        let native_queue_fns = self.shared_video_session.queue_fns();
+        let native_decode_fns = self.shared_video_session.decode_fns();
         unsafe {
-            native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info_acquire);
-            (native_queue_fns.cmd_begin_video_coding_khr)(native_command_buffer, &begin_coding_info);
-            (native_queue_fns.cmd_control_video_coding_khr)(native_command_buffer, &video_coding_control);
-            (native_decode_fns.cmd_decode_video_khr)(native_command_buffer, &video_decode_info);
-            (native_queue_fns.cmd_end_video_coding_khr)(native_command_buffer, &end_coding_info);
-            native_device.cmd_pipeline_barrier2(native_command_buffer, &dependency_info_release);
+            native_device.cmd_pipeline_barrier2(native_command_buffer, &self.dependency_info_acquire);
+            (native_queue_fns.cmd_begin_video_coding_khr)(native_command_buffer, &self.begin_coding_info);
+            (native_queue_fns.cmd_control_video_coding_khr)(native_command_buffer, &self.video_coding_control);
+            (native_decode_fns.cmd_decode_video_khr)(native_command_buffer, &self.video_decode_info);
+            (native_queue_fns.cmd_end_video_coding_khr)(native_command_buffer, &self.end_coding_info);
+            native_device.cmd_pipeline_barrier2(native_command_buffer, &self.dependency_info_release);
         }
 
         Ok(())
@@ -376,17 +391,11 @@ mod test {
         let video_session_parameters = VideoSessionParameters::new(&video_session, &stream_inspector)?;
         let decode_info = DecodeInfo::new(0, 16 * 256);
 
-        let decode = DecodeH264::new(
-            &buffer_h264,
-            &video_session_parameters,
-            &image_view_dst,
-            &image_view_ref,
-            &decode_info,
-        );
+        let mut decode = DecodeH264::new(&buffer_h264, &video_session_parameters, &image_view_dst, &image_view_ref);
         let copy = CopyImage2Buffer::new(&image_dst, &buffer_output, ImageAspectFlags::PLANE_0);
 
         queue.build_and_submit(&command_buffer, |x| {
-            decode.run_in(x)?;
+            decode.next_frame(decode_info, |frame| frame.run_in(x))?;
             Ok(())
         })?;
 
