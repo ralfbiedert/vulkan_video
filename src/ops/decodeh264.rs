@@ -36,6 +36,64 @@ impl DecodeInfo {
 
 const REFERENCE_IMAGES: usize = 16;
 
+const AV_NUM_DATA_POINTERS: usize = 16;
+
+struct VulkanDecodeImageView {
+    r#ref: [VkImageView; AV_NUM_DATA_POINTERS],             /* Image representation view (reference) */
+    out: [VkImageView; AV_NUM_DATA_POINTERS],               /* Image representation view (output-only) */
+    dst: [VkImageView; AV_NUM_DATA_POINTERS],               /* Set to img_view_out if no layered refs are used */
+    aspect: [VkImageAspectFlags; AV_NUM_DATA_POINTERS],     /* Image plane mask bits */
+    aspect_ref: [VkImageAspectFlags; AV_NUM_DATA_POINTERS], /* Only used for out-of-place decoding */
+}
+
+struct FFVulkanDecodePicture {
+    dpb_frame: AVFrame, /* Only used for out-of-place decoding. */
+
+    view: VulkanDecodeImageView,
+
+    sem: VkSemaphore,
+    sem_value: uint64_t,
+
+    /* Current picture */
+    r#ref: VkVideoPictureResourceInfoKHR,
+    ref_slot: VkVideoReferenceSlotInfoKHR,
+
+    /* Picture refs. H264 has the maximum number of refs (36) of any supported codec. */
+    refs: [VkVideoPictureResourceInfoKHR; 36],
+    ref_slots: [VkVideoReferenceSlotInfoKHR; 36],
+
+    /* Main decoding struct */
+    decode_info: VkVideoDecodeInfoKHR,
+
+    /* Slice data */
+    slices_buf: AVBufferRef,
+    slices_size: size_t,
+
+    /* Vulkan functions needed for destruction, as no other context is guaranteed to exist */
+    wait_semaphores: PFN_vkWaitSemaphores,
+    destroy_image_view: PFN_vkDestroyImageView,
+    invalidate_memory_ranges: PFN_vkInvalidateMappedMemoryRanges,
+}
+
+const H264_MAX_PICTURE_COUNT: usize = 16;
+
+struct H264VulkanDecodePicture {
+    vp: FFVulkanDecodePicture,
+
+    /* Current picture */
+    h264_ref: StdVideoDecodeH264ReferenceInfo,
+    vkh264_ref: VkVideoDecodeH264DpbSlotInfoKHR,
+
+    /* Picture refs */
+    ref_src: [H264Picture; H264_MAX_PICTURE_COUNT],
+    h264_refs: [StdVideoDecodeH264ReferenceInfo; H264_MAX_PICTURE_COUNT],
+    vkh264_refs: [VkVideoDecodeH264DpbSlotInfoKHR; H264_MAX_PICTURE_COUNT],
+
+    /* Current picture (contd.) */
+    h264pic: StdVideoDecodeH264PictureInfo,
+    h264_pic_info: VkVideoDecodeH264PictureInfoKHR,
+}
+
 /// Decode a H.264 video frame.
 pub struct DecodeH264 {
     shared_parameters: Arc<VideoSessionParametersShared>,
